@@ -1,8 +1,186 @@
-/*
+@media print {
+    @page {
+        size: 5in 5in;
+        margin-top: 1in;
+        margin-right: 1in;
+        margin-bottom: 1in;
+        margin-left: 1in;
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+        @bottom-left {
+            content: counter(page);
+        }
+    }
+}
 
-If your plugin does not need CSS, delete this file.
 
-*/
+/* style and interface */
+
+:root {
+    font-size: 18px;
+}
+
+section {
+    break-before: page;
+}
+
+p {
+    line-height: 22px;
+}
+
+h1 {
+    font-size: 24px;
+    margin-top: 0;
+}
+
+@media screen {
+
+    body {
+        background-color: whitesmoke;
+    }
+
+    .pagedjs_page {
+        background-color: white;
+        box-shadow: 0 0 0 1px #bfbfbf;
+        size: 4in 4in;
+        margin-top: 60px;
+        margin-right: 100px;
+        margin-bottom: 80px;
+        margin-left: 20mm;
+    }
+
+}
+
+.metadata-explanation {
+    font-size: 0.8em;
+    color: red;
+    margin-bottom: 1em;
+}
+
+.draggable-setting {
+    background-color: #4a4a4a;
+    border-radius: 4px;
+    display: fixed;
+    flex-direction: column;
+    align-items: flex-start;
+    border: 1px solid #5a5a5a;
+}
+
+.draggable-setting:hover {
+    background-color: #5a5a5a;
+}
+
+.chapters-collapsed {
+    padding: 0.2em 0.6em;
+    font-size: 0.8em;
+    margin-bottom: 0.3em;
+}
+
+.chapters-expanded {
+    padding: 0.6em;
+    margin-bottom: 0.5em;
+}
+
+.chapter-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.include-chapter {
+    transform: scale(1.2);
+    margin-left: auto;
+}
+
+.include-chapter input {
+    margin-left: 0.5em;
+    vertical-align: middle;
+}
+
+.chapter-file {
+    cursor: pointer;
+    user-select: none;
+    color: white;
+}
+
+.chapter-title {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    width: 100%;
+}
+
+.chapter-controls {
+    margin-top: 0.5em;
+    font-size: 0.8em;
+    margin-left: auto;
+    vertical-align: middle;
+}
+
+.chapter-controls input {
+    vertical-align: middle;
+}
+
+.chapter-controls label {
+    margin-right: 2em;
+}
+
+.chapter-controls label span {
+    vertical-align: middle;
+}
+
+.lucide-circle-help {
+    margin-left: 0.4em;
+    vertical-align: middle;
+}
+
+.metadata-input {
+    margin-left: 1em;
+    margin-bottom: 1em;
+}
+
+.metadata-label {
+    min-width: 12em;
+    display: inline-block;
+}
+
+.metadata-section input[type='checkbox'] {
+    transform: scale(1.2);
+    margin-left: 1em;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    vertical-align: middle;
+}
+
+.bulk-actions button {
+    margin-bottom: 0.5em;
+    margin-right: 0.5em;
+}
+
+.bulk-action-category {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+.chapter-list {
+    margin-top: 1em;
+    border-radius: 4px;
+    border: 1px solid #2a2a2a;
+    background-color: #2a2a2a;
+    padding: 0.4em;
+}
+
+.select-cover {
+    margin-left: 1em;
+    margin-bottom: 1em;
+}
+
+.select-cover-text {
+    margin-left: 1em;
+}
+
+.upload-file {
+    display: none;
+}
+
+.hidden {
+    display: none;
+}
