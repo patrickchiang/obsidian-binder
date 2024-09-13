@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { App, FileSystemAdapter, MarkdownRenderer, Modal, Notice, TAbstractFile, TFile, TFolder, requestUrl } from 'obsidian';
+import { App, FileSystemAdapter, LocalFile, MarkdownRenderer, Modal, Notice, TAbstractFile, TFile, TFolder, requestUrl } from 'obsidian';
 import { createRoot } from 'react-dom/client';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { Tooltip } from 'react-tooltip';
@@ -14,6 +14,7 @@ import LanguageSelect from './LanguageSelect.js';
 import HelperTooltip from './HelperTooltip.js';
 import BinderPlugin from './main.js';
 import { BinderModalProps, BookChapter, BookData, BookMetadata, BookStoredChapter } from './BookStructure.js';
+import * as epubStyle from './epubstyle.js';
 
 interface EpubMetadata extends BookMetadata {
     cover: string;
@@ -481,16 +482,31 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         }
     };
 
-    const makeHTML = async (markdown: string, chapterName: string, filePath: string) => {
+    const makeHTML = async (markdown: string, chapter: BookChapter) => {
+        const chapterName = chapter.title;
+        const filePath = chapter.file.path;
+
         const section = document.createElement('section');
         document.body.appendChild(section);
 
-        const chapterTitle = document.createElement('h1');
-        chapterTitle.innerText = chapterName;
-        section.appendChild(chapterTitle);
+        if (!chapter.isFrontMatter) {
+            const chapterTitle = document.createElement('h1');
+            chapterTitle.innerText = chapterName;
+            chapterTitle.addClass('chapter-title');
+            section.appendChild(chapterTitle);
+        }
 
         await MarkdownRenderer.render(app, markdown, section, filePath, plugin);
         section.querySelector('p')?.addClass('dropcap');
+
+        // replace horizontal rules with asterisks
+        const horizontalRules = section.querySelectorAll('hr');
+        horizontalRules.forEach(hr => {
+            const asterisk = document.createElement('div');
+            asterisk.addClass('horizontal-rule');
+            asterisk.innerText = '* * *';
+            hr.replaceWith(asterisk);
+        });
 
         const imageSources = Array.from(section.querySelectorAll('img')).map(async image => {
             const newImagePath = await processImage(image, section);
@@ -573,7 +589,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             }
 
             const readFile = await app.vault.cachedRead(chapter.file);
-            const html = await makeHTML(readFile, chapter.title, chapter.file.path);
+            const html = await makeHTML(readFile, chapter);
 
             sections.push({
                 title: chapter.title,
@@ -591,7 +607,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         }
 
         const epub = new Epub({
-            css: '',
+            css: epubStyle.STYLE,
             metadata: epubMetadata,
             options: {
                 startReading: metadata.startReading,
@@ -599,8 +615,6 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             resources: resources,
             sections: sections
         });
-
-        // epub.addCSS(epubstyle.STYLE);
 
         const dialog = window.electron.remote.dialog;
         const getDirectory = await dialog.showOpenDialog({

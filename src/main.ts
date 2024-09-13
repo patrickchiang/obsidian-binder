@@ -1,6 +1,7 @@
 import { App, Plugin, PluginSettingTab, Setting, TFolder } from 'obsidian';
 import { BinderEpubIntegrationModal } from './EpubBinderModal.js';
-import { BinderPdfIntegrationModal } from './PdfBinderModal.js';
+// import { BinderPdfIntegrationModal } from './PdfBinderModal.js';
+import { frontMatter } from './FrontMatter.js';
 
 interface BinderPluginSettings {
 	persistSettings: boolean;
@@ -29,14 +30,73 @@ export default class BinderPlugin extends Plugin {
 								new BinderEpubIntegrationModal(this.app, file, this).open();
 							});
 					});
+
 					menu.addItem((item) => {
 						item
-							.setTitle("Bind to PDF")
-							.setIcon("book-open-text")
-							.onClick(async () => {
-								new BinderPdfIntegrationModal(this.app, file, this).open();
+							.setTitle("Add Front/Back Matter")
+							.setIcon("book-open-text");
+
+						const subMenu = item.setSubmenu();
+
+						const frontMatterTemplates = [
+							{
+								title: "Find Me Online Page",
+								template: frontMatter.createFindMe
+							},
+							{
+								title: "Copyright Page",
+								template: frontMatter.createCopyright
+							}
+						];
+
+						for (const { title, template } of frontMatterTemplates) {
+							subMenu.addItem((subItem) => {
+								subItem
+									.setTitle(title)
+									.setIcon("book-open-text")
+									.onClick(async () => {
+										await template(this.app, file as TFolder);
+									});
 							});
+						}
+
+						subMenu.addSeparator();
+
+						const backMatterTemplates = [
+							{
+								title: "Other Books Page",
+								template: frontMatter.createOtherBooks
+							},
+							{
+								title: "Preview Book Page",
+								template: frontMatter.createPreviewBook
+							},
+							{
+								title: "About the Author Page",
+								template: frontMatter.createAboutAuthor
+							}
+						];
+
+						for (const { title, template } of backMatterTemplates) {
+							subMenu.addItem((subItem) => {
+								subItem
+									.setTitle(title)
+									.setIcon("book-open-text")
+									.onClick(async () => {
+										await template(this.app, file as TFolder);
+									});
+							});
+						}
 					});
+
+					// menu.addItem((item) => {
+					// 	item
+					// 		.setTitle("Bind to PDF")
+					// 		.setIcon("book-open-text")
+					// 		.onClick(async () => {
+					// 			new BinderPdfIntegrationModal(this.app, file, this).open();
+					// 		});
+					// });
 					menu.addSeparator();
 				}
 			})
