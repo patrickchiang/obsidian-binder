@@ -11,7 +11,7 @@ const openFile = async (app: App, folder: TFolder, fileName: string, markdown: s
     if (app.vault.getFileByPath(filePath)) {
         new Notice(`File ${fileName} already exists in ${folder.path}.`);
     }
-    await app.vault.create(filePath, copyright.markdown);
+    await app.vault.create(filePath, markdown);
     const file = app.vault.getFileByPath(filePath);
     if (file) {
         app.workspace.getLeaf("tab").openFile(file);

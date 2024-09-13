@@ -7,6 +7,7 @@ export interface BookChapter {
     include: boolean;
     excludeFromContents: boolean;
     isFrontMatter: boolean;
+    isBackMatter: boolean;
 }
 
 export interface BookStoredChapter {
@@ -15,6 +16,7 @@ export interface BookStoredChapter {
     include: boolean;
     excludeFromContents: boolean;
     isFrontMatter: boolean;
+    isBackMatter: boolean;
 }
 
 export interface BookMetadata {

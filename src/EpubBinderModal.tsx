@@ -99,7 +99,8 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                 file: chapter.file.path,
                 include: chapter.include,
                 excludeFromContents: chapter.excludeFromContents,
-                isFrontMatter: chapter.isFrontMatter
+                isFrontMatter: chapter.isFrontMatter,
+                isBackMatter: chapter.isBackMatter
             }))
         };
 
@@ -129,6 +130,17 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
 
     const files = getFilesInFolder(folder as TFolder);
 
+    const hardCodedFrontMatter = [
+        "000 Copyright",
+        "000 Find Me Online"
+    ];
+
+    const hardCodedBackMatter = [
+        "999 Other Books",
+        "999 Preview Book",
+        "999 About the Author"
+    ];
+
     const loadFromYaml = () => {
         const defaultBookData = {
             metadata: {
@@ -149,7 +161,6 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                 published: '',
                 transcriptionSource: '',
 
-
                 showContents: true,
                 tocTitle: '',
                 startReading: true,
@@ -159,7 +170,8 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                 file,
                 include: true,
                 excludeFromContents: false,
-                isFrontMatter: false,
+                isFrontMatter: hardCodedFrontMatter.includes(file.basename),
+                isBackMatter: hardCodedBackMatter.includes(file.basename)
             }))
         };
 
@@ -185,6 +197,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                         include: chapter.include,
                         excludeFromContents: chapter.excludeFromContents,
                         isFrontMatter: chapter.isFrontMatter,
+                        isBackMatter: chapter.isBackMatter
                     };
                 });
             } else {
@@ -196,6 +209,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                         include: storedChapter?.include || true,
                         excludeFromContents: storedChapter?.excludeFromContents || false,
                         isFrontMatter: storedChapter?.isFrontMatter || false,
+                        isBackMatter: storedChapter?.isBackMatter || false
                     };
                 });
             }
@@ -296,7 +310,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         const setNumberedChapters = useCallback(() => {
             updateChapters(prevChapters => {
                 return prevChapters.reduce((acc, chapter) => {
-                    if (!chapter.include || chapter.isFrontMatter) {
+                    if (!chapter.include || chapter.isFrontMatter || chapter.isBackMatter) {
                         acc.updatedChapters.push(chapter);
                     } else {
                         acc.i++;
@@ -414,7 +428,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                                 type="text"
                                 className="chapter-title"
                                 value={chapter.title}
-                                placeholder="Insert chapter title (required)"
+                                placeholder="Insert chapter title (required, leave numbers out)"
                                 onChange={e => changeChapterTitle(index, e.target.value)}
                                 disabled={!chapter.include}
                             />
@@ -444,8 +458,22 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                                 <label htmlFor={`is-front-matter-${index}`}>
                                     <span>Front matter</span>
                                     <HelperTooltip>
-                                        Front matter content is included. Will appear in your book ahead of the contents page.
-                                        Mostly used for copyright, dedication pages. Will not be included in table of contents by default.
+                                        This section is front matter content. Will appear in your book ahead of the contents page.
+                                        Mostly used for copyright, dedication pages.
+                                    </HelperTooltip>
+                                </label>
+
+                                <input
+                                    type="checkbox"
+                                    id={`is-back-matter-${index}`}
+                                    checked={chapter.isBackMatter}
+                                    onChange={e => toggleChapterProperty(index, 'isBackMatter', e.target.checked)}
+                                    disabled={!chapter.include}
+                                />
+                                <label htmlFor={`is-back-matter-${index}`}>
+                                    <span>Back matter</span>
+                                    <HelperTooltip>
+                                        This section is back matter content. Mostly used for indice, about the author pages...etc.
                                     </HelperTooltip>
                                 </label>
                             </div>
@@ -485,14 +513,19 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         }
     };
 
-    const makeHTML = async (markdown: string, chapter: BookChapter) => {
+    const makeHTML = async (markdown: string, chapter: BookChapter, chapterNumber: number) => {
         const chapterName = chapter.title;
         const filePath = chapter.file.path;
 
         const section = document.createElement('section');
         document.body.appendChild(section);
 
-        if (!chapter.isFrontMatter) {
+        if (!chapter.isFrontMatter && !chapter.isBackMatter) {
+            const chapterNumberTitle = document.createElement('h1');
+            chapterNumberTitle.innerText = chapterNumber.toString();
+            chapterNumberTitle.addClass('chapter-number');
+            section.appendChild(chapterNumberTitle);
+
             const chapterTitle = document.createElement('h1');
             chapterTitle.innerText = chapterName;
             chapterTitle.addClass('chapter-title');
@@ -584,6 +617,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         const sections: Section[] = [];
         const resources: Resource[] = [];
 
+        let chapterNumber = 1;
         for (const chapter of chapters) {
             if (!chapter.include) continue;
             if (!chapter.title) {
@@ -592,13 +626,18 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             }
 
             const readFile = await app.vault.cachedRead(chapter.file);
-            const html = await makeHTML(readFile, chapter);
+            const html = await makeHTML(readFile, chapter, chapterNumber);
+            let chapterTitle = chapter.title;
+            if (!chapter.isFrontMatter && !chapter.isBackMatter) {
+                chapterTitle = chapterNumber + '. ' + chapter.title;
+                chapterNumber++;
+            }
 
             sections.push({
-                title: chapter.title,
+                title: chapterTitle,
                 content: html.section.innerHTML,
                 excludeFromContents: chapter.excludeFromContents,
-                isFrontMatter: chapter.isFrontMatter
+                isFrontMatter: chapter.isFrontMatter,
             });
 
             html.images.forEach(image => {
@@ -995,7 +1034,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                     <button onClick={setNumberedChapters}>
                         Set numbered chapters
                         <HelperTooltip>
-                            Set included chapter titles to the order they are listed.
+                            Set included chapter titles to the order they are listed. Avoid.
                         </HelperTooltip>
                     </button>
                 </div>
