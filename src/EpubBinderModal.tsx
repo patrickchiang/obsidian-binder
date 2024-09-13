@@ -477,6 +477,9 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
 
             await downloadImage(url, localPath);
             return path.join(getBasePath(), localPath);
+        } else if (url.startsWith("app://")) {
+            const urlPath = new URL(url).pathname.substring(1);
+            return decodeURIComponent(urlPath);
         } else {
             return path.join(getBasePath(), url);
         }
@@ -511,7 +514,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         const imageSources = Array.from(section.querySelectorAll('img')).map(async image => {
             const newImagePath = await processImage(image, section);
             const filename = path.basename(new URL(newImagePath).pathname);
-            const relativePath = '../images/' + filename;
+            const relativePath = '../resources/' + filename;
             // this gives a console GET error, that's normal
             image.src = relativePath;
             return newImagePath;
