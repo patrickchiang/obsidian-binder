@@ -2,6 +2,9 @@ import React, { useState, useCallback } from 'react';
 import { App, FileSystemAdapter, LocalFile, MarkdownRenderer, Modal, Notice, TAbstractFile, TFile, TFolder, requestUrl } from 'obsidian';
 import { createRoot } from 'react-dom/client';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { icon } from '@fortawesome/fontawesome-svg-core'
+import { faCrown, faGlobe } from '@fortawesome/free-solid-svg-icons'
+import { faAmazon, faApple, faAudible, faFacebook, faPatreon, faTwitter } from '@fortawesome/free-brands-svg-icons';
 import { Tooltip } from 'react-tooltip';
 import yaml from 'js-yaml';
 import { v4 as uuid } from 'uuid';
@@ -166,7 +169,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                 startReading: true,
             },
             chapters: files.map(file => ({
-                title: file.basename,
+                title: file.basename.replace(/^\d*/, '').trim(),
                 file,
                 include: true,
                 excludeFromContents: false,
@@ -394,6 +397,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
     }, [updateMetadata]);
 
     const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
+    const [optionalMetadataCollapsed, setOptionalMetadataCollapsed] = useState(true);
 
     const renderChapter = (chapter: BookChapter, index: number) => (
         <Draggable key={index} draggableId={index.toString()} index={index}>
@@ -544,6 +548,67 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             hr.replaceWith(asterisk);
         });
 
+        // replace store links
+        const storeLinkers = {
+            "AMAZON": icon(faAmazon).html[0],
+            "APPLE": icon(faApple).html[0],
+            "AUDIBLE": icon(faAudible).html[0],
+            "FACEBOOK": icon(faFacebook).html[0],
+            "PATREON": icon(faPatreon).html[0],
+            "ROYALROAD": icon(faCrown).html[0],
+            "TWITTER": icon(faTwitter).html[0],
+            "WEBSITE": icon(faGlobe).html[0],
+        };
+        const storeLinks = Array.from(section.querySelectorAll('a'));
+        storeLinks.forEach(link => {
+            const linkUrl = link.href;
+            for (const [key, iconSvg] of Object.entries(storeLinkers)) {
+                if (link.textContent === "%BINDER " + key + " LINK%") {
+                    const newLink = document.createElement('a');
+                    newLink.href = linkUrl;
+                    newLink.innerHTML = iconSvg;
+                    newLink.addClass('binder-store-link');
+
+                    const parent = link.parentElement;
+                    if (!parent?.hasClass('binder-store-link-container')) {
+                        parent?.addClass('binder-store-link-container');
+                    }
+
+                    link.replaceWith(newLink);
+                }
+            }
+        });
+        section.querySelectorAll('.binder-store-link-container').forEach(container => {
+            const children = Array.from(container.children);
+
+            if (children.length > 3) {
+                container.innerHTML = '';
+
+                for (let i = 0; i < children.length; i += 3) {
+                    const newContainer = document.createElement('div');
+                    newContainer.classList.add('binder-store-link-container');
+
+                    for (let j = i; j < i + 3 && j < children.length; j++) {
+                        newContainer.appendChild(children[j]);
+                    }
+                    container.appendChild(newContainer);
+                }
+                container.removeClass('binder-store-link-container');
+            }
+        });
+
+        let rollingStyle = "";
+        Array.from(section.children).forEach(child => {
+            if (child instanceof HTMLPreElement) {
+                if (child.textContent?.startsWith("%BINDER CSS%")) {
+                    rollingStyle = child.textContent.replace("%BINDER CSS%", "");
+                    child.remove();
+                }
+            }
+
+            child.setAttribute('style', rollingStyle);
+        });
+
         const imageSources = Array.from(section.querySelectorAll('img')).map(async image => {
             const newImagePath = await processImage(image, section);
             const filename = path.basename(new URL(newImagePath).pathname);
@@ -641,9 +706,10 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             });
 
             html.images.forEach(image => {
+                const inputImage = fs.readFileSync(image);
                 resources.push({
                     name: image,
-                    data: fs.readFileSync(image),
+                    data: inputImage,
                 });
             });
         }
@@ -768,178 +834,182 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                 </div>
 
                 <h2>
-                    Options
+                    <span onClick={() => setOptionalMetadataCollapsed(!optionalMetadataCollapsed)} className="collapse-metadata-header">
+                        <span className="collapse-metadata-icon">{optionalMetadataCollapsed ? '▶' : '▼'}</span> Optional Metadata
+                    </span>
                     <HelperTooltip>
                         Metadata fields in this section are optional. These fields may not be shown to all e-readers.
                     </HelperTooltip>
                 </h2>
 
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="identifier">Identifier</label>
-                        <HelperTooltip>
-                            The identifier of the book. This can be an ISBN, or any number you want to use to identify it.
-                        </HelperTooltip>
-                    </div>
+                <div className={optionalMetadataCollapsed ? 'metadata-section-collapsed' : ''}>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="identifier">Identifier</label>
+                            <HelperTooltip>
+                                The identifier of the book. This can be an ISBN, or any number you want to use to identify it.
+                            </HelperTooltip>
+                        </div>
 
-                    <input
-                        type="text"
-                        id="identifier"
-                        className="metadata-input"
-                        value={metadata.identifier}
-                        onChange={handleTextInputChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="description">Description</label>
-                        <HelperTooltip>
-                            A short description of the book.
-                            Should be a single, complete sentence ending in a period, not restate the title, be typogrified, and summarize the main theme or plot thread.
-                        </HelperTooltip>
+                        <input
+                            type="text"
+                            id="identifier"
+                            className="metadata-input"
+                            value={metadata.identifier}
+                            onChange={handleTextInputChange}
+                        />
                     </div>
-                    <input
-                        type="text"
-                        id="description"
-                        className="metadata-input"
-                        value={metadata.description}
-                        onChange={handleTextInputChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="series">Series</label>
-                        <HelperTooltip>
-                            The series the book belongs to.
-                        </HelperTooltip>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="description">Description</label>
+                            <HelperTooltip>
+                                A short description of the book.
+                                Should be a single, complete sentence ending in a period, not restate the title, be typogrified, and summarize the main theme or plot thread.
+                            </HelperTooltip>
+                        </div>
+                        <input
+                            type="text"
+                            id="description"
+                            className="metadata-input"
+                            value={metadata.description}
+                            onChange={handleTextInputChange}
+                        />
                     </div>
-                    <input
-                        type="text"
-                        id="series"
-                        className="metadata-input"
-                        value={metadata.series}
-                        onChange={handleTextInputChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="sequence">Sequence</label>
-                        <HelperTooltip>
-                            The sequence number of the book in the series.
-                        </HelperTooltip>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="series">Series</label>
+                            <HelperTooltip>
+                                The series the book belongs to.
+                            </HelperTooltip>
+                        </div>
+                        <input
+                            type="text"
+                            id="series"
+                            className="metadata-input"
+                            value={metadata.series}
+                            onChange={handleTextInputChange}
+                        />
                     </div>
-                    <input
-                        type="number"
-                        id="sequence"
-                        className="metadata-input"
-                        value={metadata.sequence != undefined && metadata.sequence >= 0 ? metadata.sequence : ''}
-                        onChange={handleNumberChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="fileAs">File As</label>
-                        <HelperTooltip>
-                            The sortable version of the author's name for overriding the name. Last name, First.
-                        </HelperTooltip>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="sequence">Sequence</label>
+                            <HelperTooltip>
+                                The sequence number of the book in the series.
+                            </HelperTooltip>
+                        </div>
+                        <input
+                            type="number"
+                            id="sequence"
+                            className="metadata-input"
+                            value={metadata.sequence != undefined && metadata.sequence >= 0 ? metadata.sequence : ''}
+                            onChange={handleNumberChange}
+                        />
                     </div>
-                    <input
-                        type="text"
-                        id="fileAs"
-                        className="metadata-input"
-                        value={metadata.fileAs}
-                        onChange={handleTextInputChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="genre">Genre</label>
-                        <HelperTooltip>
-                            The genre of the book. (e.g. Fiction, Non-Fiction, Fantasy, Mystery, etc.)
-                        </HelperTooltip>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="fileAs">File As</label>
+                            <HelperTooltip>
+                                The sortable version of the author's name for overriding the name. Last name, First.
+                            </HelperTooltip>
+                        </div>
+                        <input
+                            type="text"
+                            id="fileAs"
+                            className="metadata-input"
+                            value={metadata.fileAs}
+                            onChange={handleTextInputChange}
+                        />
                     </div>
-                    <input
-                        type="text"
-                        id="genre"
-                        className="metadata-input"
-                        value={metadata.genre}
-                        onChange={handleTextInputChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="tags">Tags</label>
-                        <HelperTooltip>
-                            A comma-separated list of tags for the book.
-                        </HelperTooltip>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="genre">Genre</label>
+                            <HelperTooltip>
+                                The genre of the book. (e.g. Fiction, Non-Fiction, Fantasy, Mystery, etc.)
+                            </HelperTooltip>
+                        </div>
+                        <input
+                            type="text"
+                            id="genre"
+                            className="metadata-input"
+                            value={metadata.genre}
+                            onChange={handleTextInputChange}
+                        />
                     </div>
-                    <input
-                        type="text"
-                        id="tags"
-                        className="metadata-input"
-                        value={metadata.tags}
-                        onChange={handleTextInputChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="copyright">Copyright</label>
-                        <HelperTooltip>
-                            The copyright information. (e.g. © 2024 Author Name)
-                        </HelperTooltip>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="tags">Tags</label>
+                            <HelperTooltip>
+                                A comma-separated list of tags for the book.
+                            </HelperTooltip>
+                        </div>
+                        <input
+                            type="text"
+                            id="tags"
+                            className="metadata-input"
+                            value={metadata.tags}
+                            onChange={handleTextInputChange}
+                        />
                     </div>
-                    <input
-                        type="text"
-                        id="copyright"
-                        className="metadata-input"
-                        value={metadata.copyright}
-                        onChange={handleTextInputChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="publisher">Publisher</label>
-                        <HelperTooltip>
-                            The publisher of the book.
-                        </HelperTooltip>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="copyright">Copyright</label>
+                            <HelperTooltip>
+                                The copyright information. (e.g. © 2024 Author Name)
+                            </HelperTooltip>
+                        </div>
+                        <input
+                            type="text"
+                            id="copyright"
+                            className="metadata-input"
+                            value={metadata.copyright}
+                            onChange={handleTextInputChange}
+                        />
                     </div>
-                    <input
-                        type="text"
-                        id="publisher"
-                        className="metadata-input"
-                        value={metadata.publisher}
-                        onChange={handleTextInputChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="published">Published</label>
-                        <HelperTooltip>
-                            The published date of the book. (e.g. 2024-01-01)
-                        </HelperTooltip>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="publisher">Publisher</label>
+                            <HelperTooltip>
+                                The publisher of the book.
+                            </HelperTooltip>
+                        </div>
+                        <input
+                            type="text"
+                            id="publisher"
+                            className="metadata-input"
+                            value={metadata.publisher}
+                            onChange={handleTextInputChange}
+                        />
                     </div>
-                    <input
-                        type="text"
-                        id="published"
-                        className="metadata-input"
-                        value={metadata.published}
-                        onChange={handleTextInputChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="transcriptionSource">Transcription Source</label>
-                        <HelperTooltip>
-                            The source of the transcription.
-                        </HelperTooltip>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="published">Published</label>
+                            <HelperTooltip>
+                                The published date of the book. (e.g. 2024-01-01)
+                            </HelperTooltip>
+                        </div>
+                        <input
+                            type="text"
+                            id="published"
+                            className="metadata-input"
+                            value={metadata.published}
+                            onChange={handleTextInputChange}
+                        />
                     </div>
-                    <input
-                        type="text"
-                        id="transcriptionSource"
-                        className="metadata-input"
-                        value={metadata.transcriptionSource}
-                        onChange={handleTextInputChange}
-                    />
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="transcriptionSource">Transcription Source</label>
+                            <HelperTooltip>
+                                The source of the transcription.
+                            </HelperTooltip>
+                        </div>
+                        <input
+                            type="text"
+                            id="transcriptionSource"
+                            className="metadata-input"
+                            value={metadata.transcriptionSource}
+                            onChange={handleTextInputChange}
+                        />
+                    </div>
                 </div>
 
                 <h2>

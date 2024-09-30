@@ -1,4 +1,6 @@
-export const markdown = `{Book Name} © 2024 {Author Name}
+export const markdown = `    %BINDER CSS% text-align: center;
+
+{Book Name} © 2024 {Author Name}
 
 Illustration by {Illustrator Name}
 

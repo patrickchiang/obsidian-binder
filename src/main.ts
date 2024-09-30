@@ -34,7 +34,7 @@ export default class BinderPlugin extends Plugin {
 					menu.addItem((item) => {
 						item
 							.setTitle("Add Front/Back Matter")
-							.setIcon("book-open-text");
+							.setIcon("plus");
 
 						const subMenu = item.setSubmenu();
 
@@ -53,7 +53,7 @@ export default class BinderPlugin extends Plugin {
 							subMenu.addItem((subItem) => {
 								subItem
 									.setTitle(title)
-									.setIcon("book-open-text")
+									.setIcon("plus")
 									.onClick(async () => {
 										await template(this.app, file as TFolder);
 									});
@@ -81,7 +81,7 @@ export default class BinderPlugin extends Plugin {
 							subMenu.addItem((subItem) => {
 								subItem
 									.setTitle(title)
-									.setIcon("book-open-text")
+									.setIcon("plus")
 									.onClick(async () => {
 										await template(this.app, file as TFolder);
 									});

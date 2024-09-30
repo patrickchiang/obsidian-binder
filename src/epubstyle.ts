@@ -26,4 +26,15 @@ body {
     margin-bottom: 0;
     font-weight: bold;
 }
+
+.binder-store-link {
+    display: inline-block;
+    width: 80px;
+    height: 80px;
+}
+
+.binder-store-link-container {
+    display: block;
+    text-align: center;
+}
 `;
