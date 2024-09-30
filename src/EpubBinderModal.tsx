@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { App, FileSystemAdapter, LocalFile, MarkdownRenderer, Modal, Notice, TAbstractFile, TFile, TFolder, requestUrl } from 'obsidian';
+import { FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TAbstractFile, TFile, TFolder, WorkspaceLeaf, requestUrl } from 'obsidian';
 import { createRoot } from 'react-dom/client';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable, DropResult, DraggingStyle } from 'react-beautiful-dnd';
 import { icon } from '@fortawesome/fontawesome-svg-core'
 import { faCrown, faGlobe } from '@fortawesome/free-solid-svg-icons'
 import { faAmazon, faApple, faAudible, faFacebook, faPatreon, faTwitter } from '@fortawesome/free-brands-svg-icons';
@@ -41,28 +41,41 @@ interface EpubMetadata extends BookMetadata {
     startReading: boolean;
 }
 
-export class BinderEpubIntegrationModal extends Modal {
+export class BinderEpubIntegrationView extends ItemView {
     folder: TAbstractFile;
     plugin: BinderPlugin;
     reactRoot: ReturnType<typeof createRoot> | null = null;
 
-    constructor(app: App, folder: TAbstractFile, plugin: BinderPlugin) {
-        super(app);
-        this.folder = folder;
+    constructor(leaf: WorkspaceLeaf, plugin: BinderPlugin) {
+        super(leaf);
         this.plugin = plugin;
     }
 
-    onOpen() {
+    getViewType() {
+        return "binder-view";
+    }
+
+    getDisplayText() {
+        return "Binder" + (this.folder ? `: ${this.folder.name}` : '');
+    }
+
+    async onOpen() {
+    }
+
+    startRender(folder: TAbstractFile) {
+        this.folder = folder;
+        this.leaf.updateHeader();
+
         const { contentEl } = this;
 
-        // this.modalEl.addClass('binder-modal');
+        contentEl.empty();
 
         const reactContainer = contentEl.createDiv();
         this.reactRoot = createRoot(reactContainer);
         this.reactRoot.render(<EpubBinderModal app={this.app} folder={this.folder} plugin={this.plugin} />);
     }
 
-    onClose() {
+    async onClose() {
         if (this.reactRoot) {
             this.reactRoot.unmount();
         }
@@ -399,92 +412,121 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
     const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
     const [optionalMetadataCollapsed, setOptionalMetadataCollapsed] = useState(true);
 
+    const findRelativeParentOffsetTop = (element: HTMLElement | null) => {
+        let currentElement = element;
+
+        while (currentElement) {
+            const computedStyle = window.getComputedStyle(currentElement);
+            if (computedStyle.position === "relative") {
+                return currentElement.getBoundingClientRect();
+            }
+            currentElement = currentElement.offsetParent as HTMLElement;
+        }
+        return {
+            top: 0,
+            left: 0
+        };
+    }
+
+
     const renderChapter = (chapter: BookChapter, index: number) => (
         <Draggable key={index} draggableId={index.toString()} index={index}>
-            {(provided, snapshot) => (
-                <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    className={chaptersCollapsed ? 'draggable-setting chapters-collapsed' : 'draggable-setting chapters-expanded'}
-                >
-                    <div className="chapter-header">
-                        <label htmlFor={`include-chapter-${index}`} className="chapter-file">
-                            {chapter.file.basename}.md
-                        </label>
-                        <div className="include-chapter">
-                            <HelperTooltip>
-                                Include chapter in book. Uncheck to exclude.
-                            </HelperTooltip>
-                            <input
-                                type="checkbox"
-                                id={`include-chapter-${index}`}
-                                checked={chapter.include}
-                                onChange={e => toggleChapterProperty(index, 'include', e.target.checked)}
-                            />
+            {(provided, snapshot) => {
+                if (snapshot.isDragging) {
+                    const positionOffset = findRelativeParentOffsetTop(document.querySelector('.chapter-list'));
+                    const lastStyle = provided.draggableProps.style as DraggingStyle;
+                    const lastTop = lastStyle.top ?? 0;
+                    const lastLeft = lastStyle.left ?? 0;
+                    provided.draggableProps.style = {
+                        ...lastStyle,
+                        left: lastLeft - positionOffset.left,
+                        top: lastTop - positionOffset.top
+                    }
+                }
+                return (
+                    <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className={chaptersCollapsed ? 'draggable-setting chapters-collapsed' : 'draggable-setting chapters-expanded'}
+                    >
+                        <div className="chapter-header">
+                            <label htmlFor={`include-chapter-${index}`} className="chapter-file">
+                                {chapter.file.basename}.md
+                            </label>
+                            <div className="include-chapter">
+                                <HelperTooltip>
+                                    Include chapter in book. Uncheck to exclude.
+                                </HelperTooltip>
+                                <input
+                                    type="checkbox"
+                                    id={`include-chapter-${index}`}
+                                    checked={chapter.include}
+                                    onChange={e => toggleChapterProperty(index, 'include', e.target.checked)}
+                                />
+                            </div>
                         </div>
 
+                        {!chaptersCollapsed &&
+                            <>
+                                <input
+                                    type="text"
+                                    className="chapter-title"
+                                    value={chapter.title}
+                                    placeholder="Insert chapter title (required, leave numbers out)"
+                                    onChange={e => changeChapterTitle(index, e.target.value)}
+                                    disabled={!chapter.include}
+                                />
+
+                                <div className="chapter-controls">
+                                    <input
+                                        type="checkbox"
+                                        id={`exclude-from-contents-${index}`}
+                                        checked={chapter.excludeFromContents}
+                                        onChange={e => toggleChapterProperty(index, 'excludeFromContents', e.target.checked)}
+                                        disabled={!chapter.include}
+                                    />
+                                    <label htmlFor={`exclude-from-contents-${index}`}>
+                                        <span>Exclude from TOC</span>
+                                        <HelperTooltip>
+                                            Table of contents will not include this chapter, but it will still be included in the contents.
+                                        </HelperTooltip>
+                                    </label>
+
+                                    <input
+                                        type="checkbox"
+                                        id={`is-front-matter-${index}`}
+                                        checked={chapter.isFrontMatter}
+                                        onChange={e => toggleChapterProperty(index, 'isFrontMatter', e.target.checked)}
+                                        disabled={!chapter.include}
+                                    />
+                                    <label htmlFor={`is-front-matter-${index}`}>
+                                        <span>Front matter</span>
+                                        <HelperTooltip>
+                                            This section is front matter content. Will appear in your book ahead of the contents page.
+                                            Mostly used for copyright, dedication pages.
+                                        </HelperTooltip>
+                                    </label>
+
+                                    <input
+                                        type="checkbox"
+                                        id={`is-back-matter-${index}`}
+                                        checked={chapter.isBackMatter}
+                                        onChange={e => toggleChapterProperty(index, 'isBackMatter', e.target.checked)}
+                                        disabled={!chapter.include}
+                                    />
+                                    <label htmlFor={`is-back-matter-${index}`}>
+                                        <span>Back matter</span>
+                                        <HelperTooltip>
+                                            This section is back matter content. Mostly used for indice, about the author pages...etc.
+                                        </HelperTooltip>
+                                    </label>
+                                </div>
+                            </>
+                        }
                     </div>
-
-                    {!chaptersCollapsed &&
-                        <>
-                            <input
-                                type="text"
-                                className="chapter-title"
-                                value={chapter.title}
-                                placeholder="Insert chapter title (required, leave numbers out)"
-                                onChange={e => changeChapterTitle(index, e.target.value)}
-                                disabled={!chapter.include}
-                            />
-
-                            <div className="chapter-controls">
-                                <input
-                                    type="checkbox"
-                                    id={`exclude-from-contents-${index}`}
-                                    checked={chapter.excludeFromContents}
-                                    onChange={e => toggleChapterProperty(index, 'excludeFromContents', e.target.checked)}
-                                    disabled={!chapter.include}
-                                />
-                                <label htmlFor={`exclude-from-contents-${index}`}>
-                                    <span>Exclude from TOC</span>
-                                    <HelperTooltip>
-                                        Table of contents will not include this chapter, but it will still be included in the contents.
-                                    </HelperTooltip>
-                                </label>
-
-                                <input
-                                    type="checkbox"
-                                    id={`is-front-matter-${index}`}
-                                    checked={chapter.isFrontMatter}
-                                    onChange={e => toggleChapterProperty(index, 'isFrontMatter', e.target.checked)}
-                                    disabled={!chapter.include}
-                                />
-                                <label htmlFor={`is-front-matter-${index}`}>
-                                    <span>Front matter</span>
-                                    <HelperTooltip>
-                                        This section is front matter content. Will appear in your book ahead of the contents page.
-                                        Mostly used for copyright, dedication pages.
-                                    </HelperTooltip>
-                                </label>
-
-                                <input
-                                    type="checkbox"
-                                    id={`is-back-matter-${index}`}
-                                    checked={chapter.isBackMatter}
-                                    onChange={e => toggleChapterProperty(index, 'isBackMatter', e.target.checked)}
-                                    disabled={!chapter.include}
-                                />
-                                <label htmlFor={`is-back-matter-${index}`}>
-                                    <span>Back matter</span>
-                                    <HelperTooltip>
-                                        This section is back matter content. Mostly used for indice, about the author pages...etc.
-                                    </HelperTooltip>
-                                </label>
-                            </div>
-                        </>
-                    }
-                </div>
-            )}
+                )
+            }}
         </Draggable>
     );
 
@@ -1148,7 +1190,6 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             <DragDropContext onDragEnd={onDragEnd}>
                 <Droppable droppableId="chapters">
                     {(provided) => (
-
                         <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}

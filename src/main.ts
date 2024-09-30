@@ -1,7 +1,7 @@
-import { App, Plugin, PluginSettingTab, Setting, TFolder } from 'obsidian';
-import { BinderEpubIntegrationModal } from './EpubBinderModal.js';
+import { App, Plugin, PluginSettingTab, Setting, TFolder, WorkspaceLeaf } from 'obsidian';
 // import { BinderPdfIntegrationModal } from './PdfBinderModal.js';
 import { frontMatter } from './FrontMatter.js';
+import { BinderEpubIntegrationView } from './EpubBinderModal.js';
 
 interface BinderPluginSettings {
 	persistSettings: boolean;
@@ -17,6 +17,11 @@ export default class BinderPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
+		this.registerView(
+			"binder-view",
+			(leaf) => new BinderEpubIntegrationView(leaf, this)
+		);
+
 		this.addSettingTab(new BinderSettingTab(this.app, this));
 		this.registerEvent(
 			this.app.workspace.on("file-menu", (menu, file, view) => {
@@ -27,7 +32,21 @@ export default class BinderPlugin extends Plugin {
 							.setTitle("Bind to EPUB")
 							.setIcon("book-open-text")
 							.onClick(async () => {
-								new BinderEpubIntegrationModal(this.app, file, this).open();
+								const { workspace } = this.app;
+								const leaves = workspace.getLeavesOfType("binder-view");
+
+								let leaf: WorkspaceLeaf | null = null;
+								if (leaves.length > 0) {
+									leaf = leaves[0];
+								} else {
+									leaf = workspace.getLeaf(true);
+									await leaf.setViewState({ type: "binder-view", active: true });
+								}
+
+								if (leaf.view instanceof BinderEpubIntegrationView) {
+									workspace.revealLeaf(leaf);
+									leaf.view.startRender(file);
+								}
 							});
 					});
 
@@ -88,15 +107,6 @@ export default class BinderPlugin extends Plugin {
 							});
 						}
 					});
-
-					// menu.addItem((item) => {
-					// 	item
-					// 		.setTitle("Bind to PDF")
-					// 		.setIcon("book-open-text")
-					// 		.onClick(async () => {
-					// 			new BinderPdfIntegrationModal(this.app, file, this).open();
-					// 		});
-					// });
 					menu.addSeparator();
 				}
 			})

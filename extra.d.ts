@@ -8,10 +8,15 @@ declare module 'obsidian' {
     interface LocalFile extends File {
         path: string;
     }
+
+    interface WorkspaceLeaf {
+        updateHeader: () => void;
+    }
 }
 
 declare global {
     interface Window {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         electron: any;
     }
 }
