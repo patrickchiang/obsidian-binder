@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TAbstractFile, TFile, TFolder, WorkspaceLeaf, requestUrl } from 'obsidian';
+import { FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TAbstractFile, TFile, TFolder, WorkspaceLeaf, addIcon, requestUrl, setIcon } from 'obsidian';
 import { createRoot } from 'react-dom/client';
 import { DragDropContext, Droppable, Draggable, DropResult, DraggingStyle } from 'react-beautiful-dnd';
 import { icon } from '@fortawesome/fontawesome-svg-core'
@@ -8,8 +8,10 @@ import { faAmazon, faApple, faAudible, faFacebook, faPatreon, faTwitter } from '
 import { Tooltip } from 'react-tooltip';
 import yaml from 'js-yaml';
 import { v4 as uuid } from 'uuid';
+import numWords from 'num-words';
 import fs from 'fs';
 import path from 'path';
+import ePub from 'epubjs';
 
 import Epub, { Metadata, Resource, Section } from 'nodepub';
 
@@ -17,7 +19,11 @@ import LanguageSelect from './LanguageSelect.js';
 import HelperTooltip from './HelperTooltip.js';
 import BinderPlugin from './main.js';
 import { BinderModalProps, BookChapter, BookData, BookMetadata, BookStoredChapter } from './BookStructure.js';
-import * as epubStyle from './epubstyle.js';
+import { renderToStaticMarkup } from 'react-dom/server';
+import ThemeSelect from './ThemeSelect.js';
+
+import { baseTheme } from './themes/base.js';
+import { monoTheme } from './themes/mono.js';
 
 interface EpubMetadata extends BookMetadata {
     cover: string;
@@ -409,8 +415,30 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         }
     }, [updateMetadata]);
 
+    const handleThemeChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+        const { value } = event.target;
+
+        switch (value) {
+            case 'base':
+                setCurrentThemeStyle(baseTheme);
+                break;
+            case 'mono':
+                setCurrentThemeStyle(monoTheme);
+                break;
+            default:
+        }
+
+        setCurrentTheme(value);
+    }, []);
+
     const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
     const [optionalMetadataCollapsed, setOptionalMetadataCollapsed] = useState(true);
+
+    const [currentTheme, setCurrentTheme] = useState("base");
+    const [currentThemeStyle, setCurrentThemeStyle] = useState(baseTheme);
+
+    const [bookLocation, setBookLocation] = useState('');
+    const [rendition, setRendition] = useState<ePub.Rendition | null>(null);
 
     const findRelativeParentOffsetTop = (element: HTMLElement | null) => {
         let currentElement = element;
@@ -427,7 +455,6 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             left: 0
         };
     }
-
 
     const renderChapter = (chapter: BookChapter, index: number) => (
         <Draggable key={index} draggableId={index.toString()} index={index}>
@@ -559,6 +586,10 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         }
     };
 
+    const capitalize = (s: string) => {
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    };
+
     const makeHTML = async (markdown: string, chapter: BookChapter, chapterNumber: number) => {
         const chapterName = chapter.title;
         const filePath = chapter.file.path;
@@ -567,15 +598,19 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         document.body.appendChild(section);
 
         if (!chapter.isFrontMatter && !chapter.isBackMatter) {
-            const chapterNumberTitle = document.createElement('h1');
-            chapterNumberTitle.innerText = chapterNumber.toString();
-            chapterNumberTitle.addClass('chapter-number');
-            section.appendChild(chapterNumberTitle);
-
-            const chapterTitle = document.createElement('h1');
-            chapterTitle.innerText = chapterName;
-            chapterTitle.addClass('chapter-title');
-            section.appendChild(chapterTitle);
+            const chapterHeader = (
+                <>
+                    <h1 className="chapter-number">
+                        <span className="chapter-word">Chapter </span>
+                        <span className="chapter-number-numeric">{chapterNumber}</span>
+                        <span className="chapter-number-text">
+                            {capitalize(numWords(chapterNumber))}
+                        </span>
+                    </h1>
+                    <h1 className="chapter-title">{chapterName}</h1>
+                </>
+            );
+            section.insertAdjacentHTML('beforeend', renderToStaticMarkup(chapterHeader));
         }
 
         await MarkdownRenderer.render(app, markdown, section, filePath, plugin);
@@ -584,10 +619,10 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         // replace horizontal rules with asterisks
         const horizontalRules = section.querySelectorAll('hr');
         horizontalRules.forEach(hr => {
-            const asterisk = document.createElement('div');
-            asterisk.addClass('horizontal-rule');
-            asterisk.innerText = '* * *';
-            hr.replaceWith(asterisk);
+            const asterisk = (
+                <div className="horizontal-rule"></div>
+            );
+            hr.outerHTML = renderToStaticMarkup(asterisk);
         });
 
         // replace store links
@@ -606,17 +641,18 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             const linkUrl = link.href;
             for (const [key, iconSvg] of Object.entries(storeLinkers)) {
                 if (link.textContent === "%BINDER " + key + " LINK%") {
-                    const newLink = document.createElement('a');
-                    newLink.href = linkUrl;
-                    newLink.innerHTML = iconSvg;
-                    newLink.addClass('binder-store-link');
-
                     const parent = link.parentElement;
                     if (!parent?.hasClass('binder-store-link-container')) {
                         parent?.addClass('binder-store-link-container');
                     }
 
-                    link.replaceWith(newLink);
+                    const newLink = (
+                        <a href={linkUrl} className="binder-store-link">
+                            {iconSvg}
+                        </a>
+                    );
+
+                    link.outerHTML = renderToStaticMarkup(newLink);
                 }
             }
         });
@@ -757,7 +793,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         }
 
         const epub = new Epub({
-            css: epubStyle.STYLE,
+            css: currentThemeStyle,
             metadata: epubMetadata,
             options: {
                 startReading: metadata.startReading,
@@ -793,6 +829,121 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         new Notice('EPUB generated at: ' + folderPath + '/' + metadata.title + '.epub');
     }
 
+    const previewPub = async () => {
+        const bookId = metadata.identifier || uuid();
+
+        // Convert base64 string to Buffer
+        const epubMetadata: Metadata = {
+            title: metadata.title || "Placeholder Title",
+            cover: {
+                name: metadata.cover,
+                data: fs.readFileSync(metadata.cover) || Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgEB/eqNlgAAAABJRU5ErkJggg==", 'base64'),
+            },
+            author: metadata.author || "Placeholder Author",
+            id: bookId || "placeholder-id",
+            language: metadata.language || "en",
+        };
+
+        const sections: Section[] = [];
+        const resources: Resource[] = [];
+
+        let chapterNumber = 1;
+        for (const chapter of chapters) {
+            if (!chapter.include) continue;
+            if (!chapter.title) {
+                new Notice('Chapter title is required for file: ' + chapter.file.basename + '.md');
+                return;
+            }
+
+            const readFile = await app.vault.cachedRead(chapter.file);
+            const html = await makeHTML(readFile, chapter, chapterNumber);
+            let chapterTitle = chapter.title;
+            if (!chapter.isFrontMatter && !chapter.isBackMatter) {
+                chapterTitle = chapterNumber + '. ' + chapter.title;
+                chapterNumber++;
+            }
+
+            sections.push({
+                title: chapterTitle,
+                content: html.section.innerHTML,
+                excludeFromContents: chapter.excludeFromContents,
+                isFrontMatter: chapter.isFrontMatter,
+            });
+
+            html.images.forEach(image => {
+                const inputImage = fs.readFileSync(image);
+                resources.push({
+                    name: image,
+                    data: inputImage,
+                });
+            });
+        }
+
+        const epub = new Epub({
+            css: currentThemeStyle,
+            metadata: epubMetadata,
+            options: {
+                startReading: metadata.startReading,
+            },
+            resources: resources,
+            sections: sections
+        });
+
+        await epub.write(path.join(getBasePath(), folder.path), "temp.epub");
+
+        // clean up images
+        const tempFolder = path.join(getBasePath(), folder.path, TEMP_FOLDER_NAME);
+        if (fs.existsSync(tempFolder)) {
+            fs.rmdirSync(tempFolder, { recursive: true });
+        }
+
+        const buffer = fs.readFileSync(path.join(getBasePath(), folder.path, "temp.epub"));
+        const blob = new Blob([buffer], { type: 'application/epub+zip' });
+
+        // @ts-ignore
+        const book = ePub.default(blob);
+
+        document.querySelector("#ebook-preview-render")?.empty();
+
+        const bookRendition = book.renderTo("ebook-preview-render", { width: "100%", height: "100%" });
+        setRendition(bookRendition);
+        book.spine.hooks.content.register((doc: Document) => {
+            console.log('setting style')
+            doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+                link.remove();
+            });
+
+            const injectStyle = document.createElement('style');
+            injectStyle.textContent = currentThemeStyle;
+            injectStyle.textContent += `
+                #toc ol {
+                    list-style-type: none;
+                    margin: 0;
+                    padding: 0;
+                }
+            `;
+
+            doc.head.appendChild(injectStyle);
+        });
+
+        // bookRendition?.display();
+        if (bookLocation){
+            bookRendition?.display(bookLocation);
+        } else {
+            bookRendition?.display();
+        }
+    };
+
+    const previouPage = () => {
+        rendition?.prev();
+        setBookLocation(rendition?.currentLocation().start.cfi);
+    };
+
+    const nextPage = () => {
+        rendition?.next();
+        setBookLocation(rendition?.currentLocation().start.cfi);
+    };
+
     return (
         <div className="modal-content">
             <Tooltip id="helper-tooltip" style={{ zIndex: 100, maxWidth: 600 }} />
@@ -800,6 +951,33 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             <h1>Binder</h1>
             <div>
                 <button onClick={createEpub} className="mod-cta">Bind to EPUB</button>
+                <button onClick={previewPub} className="mod-cta">Preview</button>
+            </div>
+
+            <div className="ebook-preview">
+                <button onClick={previouPage} className="previous-button">←</button>
+                <button onClick={nextPage} className="next-button">→</button>
+                <div id="ebook-preview-render"></div>
+            </div>
+
+            <div>
+                <h2>
+                    Themes
+                    <HelperTooltip>
+                        Theme and styling to apply to chapters.
+                    </HelperTooltip>
+                </h2>
+
+                <div>
+                    <div className='metadata-label'>
+                        <label htmlFor="theme-choose">Premade Theme</label>
+                        <HelperTooltip>
+                            The premade theme to apply to the book.
+                        </HelperTooltip>
+                    </div>
+
+                    <ThemeSelect value={currentTheme} onChange={handleThemeChange} />
+                </div>
             </div>
 
             <div className="metadata-section">

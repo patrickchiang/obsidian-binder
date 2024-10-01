@@ -69,6 +69,26 @@ h1 {
     background-color: #5a5a5a;
 }
 
+.ebook-preview {
+    float: right;
+    width: 400px;
+    height: 800px;
+    background-color: white;
+}
+
+#ebook-preview-render {
+    width: 100%;
+    height: 100%;
+}
+
+.next-button {
+    float: right;
+    border-radius: 0;
+}
+.previous-button {
+    border-radius: 0;
+}
+
 .chapters-collapsed {
     padding: 0.2em 0.6em;
     font-size: 0.8em;
