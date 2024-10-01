@@ -1,7 +1,6 @@
 import { App, Plugin, PluginSettingTab, Setting, TFolder, WorkspaceLeaf } from 'obsidian';
-// import { BinderPdfIntegrationModal } from './PdfBinderModal.js';
 import { frontMatter } from './FrontMatter.js';
-import { BinderEpubIntegrationView } from './EpubBinderModal.js';
+import { BinderIntegrationView } from './BinderView.js';
 
 interface BinderPluginSettings {
 	persistSettings: boolean;
@@ -19,7 +18,7 @@ export default class BinderPlugin extends Plugin {
 
 		this.registerView(
 			"binder-view",
-			(leaf) => new BinderEpubIntegrationView(leaf, this)
+			(leaf) => new BinderIntegrationView(leaf, this)
 		);
 
 		this.addSettingTab(new BinderSettingTab(this.app, this));
@@ -43,7 +42,7 @@ export default class BinderPlugin extends Plugin {
 									await leaf.setViewState({ type: "binder-view", active: true });
 								}
 
-								if (leaf.view instanceof BinderEpubIntegrationView) {
+								if (leaf.view instanceof BinderIntegrationView) {
 									workspace.revealLeaf(leaf);
 									leaf.view.startRender(file);
 								}

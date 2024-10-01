@@ -25,6 +25,7 @@ import { baseTheme } from './themes/base.js';
 import { monoTheme } from './themes/mono.js';
 import PreviewColorSelect from './PreviewColorSelect.js';
 import { allTheme } from './themes/all.js';
+import { BookStyle, makeStylesheet } from './Bookstyle.js';
 
 interface EpubMetadata extends BookMetadata {
     cover: string;
@@ -49,7 +50,21 @@ interface EpubMetadata extends BookMetadata {
     theme: string;
 }
 
-export class BinderEpubIntegrationView extends ItemView {
+export const defaultStyle: BookStyle = {
+    width: "5in",
+    height: "8in",
+
+    insideMargin: "0.875in",
+    outsideMargin: "0.25in",
+    verticalMargin: "0.5in",
+
+    fontSize: "12px",
+    fontFamily: "Bookerly, sans-serif",
+
+    lineHeight: "22px"
+}
+
+export class BinderIntegrationView extends ItemView {
     folder: TAbstractFile;
     plugin: BinderPlugin;
     reactRoot: ReturnType<typeof createRoot> | null = null;
@@ -89,7 +104,7 @@ export class BinderEpubIntegrationView extends ItemView {
 
         const reactContainer = contentEl.createDiv();
         this.reactRoot = createRoot(reactContainer);
-        this.reactRoot.render(<EpubBinderModal app={this.app} folder={this.folder} plugin={this.plugin} />);
+        this.reactRoot.render(<BinderView app={this.app} folder={this.folder} plugin={this.plugin} />);
     }
 
     async onClose() {
@@ -103,10 +118,11 @@ export class BinderEpubIntegrationView extends ItemView {
     }
 }
 
-const TEMP_FOLDER_NAME = 'obsidian-binder-epub-temp';
-const SAVE_FILE_NAME = 'obsidian-binder-epub-last-save.yaml';
+const TEMP_FOLDER_NAME = 'obsidian-binder-temp';
+const TEMP_SITE_NAME = 'obsidian-binder-temp.html';
+const SAVE_FILE_NAME = 'obsidian-binder-last-save.yaml';
 
-const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
+const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
     const getBasePath = () => {
         const adapter = app.vault.adapter;
         if (adapter instanceof FileSystemAdapter) {
@@ -803,7 +819,73 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         return { section, images };
     }
 
-    const createEpub = async () => {
+    const createWindowAndPrint = (html: string, filePath: string) => {
+        const { BrowserWindow } = window.electron.remote;
+        const win = new BrowserWindow({
+            show: false,
+            width: 1,
+            height: 1
+        });
+
+        const tempPath = path.join(getBasePath(), folder.path, TEMP_SITE_NAME);
+
+        // Create the HTML content
+        const htmlContent = `
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<title>Rendered Book</title>
+                    <script src="https://unpkg.com/pagedjs/dist/paged.js"></script>
+				</head>
+				<body>
+					${html}
+                    <div id="renderTo"></div>
+				</body>
+				</html>
+			`;
+
+        fs.writeFileSync(tempPath, htmlContent, { encoding: 'utf8' });
+        win.loadURL(tempPath);
+
+        const styleString = makeStylesheet(defaultStyle) + currentThemeStyle + allTheme;
+
+        const renderBook = `
+            async function renderBook() {
+                let html = document.querySelector("#html");
+                const renderTo = document.querySelector("#renderTo");
+
+                const polisher = new Paged.Polisher();
+                const chunker = new Paged.Chunker();
+
+                polisher.setup();
+                Paged.initializeHandlers(chunker, polisher);
+                await polisher.add({
+                    '': \`${styleString}\`
+                });
+
+                await chunker.flow(html.content, document.querySelector("#renderTo"));
+            }
+            renderBook();   // electron awaits for this call
+        `;
+
+        const wc = win.webContents;
+        wc.on('dom-ready', () => {
+            wc.executeJavaScript(renderBook).then(() => {
+                wc.printToPDF({ preferCSSPageSize: true }).then((data: Buffer) => {
+                    const renderPath = filePath;
+                    fs.writeFile(renderPath, data, (error) => {
+                        if (error) {
+                            console.error(error);
+                        }
+
+                        win.destroy();
+                    });
+                });
+            });
+        });
+    }
+
+    const validateMetadata = async () => {
         if (!metadata.title) {
             new Notice('Title is required.');
             return;
@@ -828,6 +910,51 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             new Notice('No chapters selected.');
             return;
         }
+    };
+
+    const createPdf = async () => {
+        validateMetadata();
+
+        const dialog = window.electron.remote.dialog;
+        const saveDialog = await dialog.showSaveDialog({
+            title: 'Save .pdf',
+            filters: [
+                { name: 'PDF', extensions: ['pdf'] }
+            ]
+        });
+
+        const filePath = saveDialog.filePath;
+
+        if (!filePath) {
+            new Notice('Select a file path.');
+            return;
+        }
+
+        const wrapper = document.createElement('template');
+        wrapper.id = 'html';
+
+        let chapterNumberPdf = 1;
+        for (const chapter of chapters) {
+            if (!chapter.include) continue;
+
+            const readFile = await app.vault.cachedRead(chapter.file);
+            const { section } = await makeHTML(readFile, chapter, chapterNumberPdf);
+            wrapper.content.appendChild(section);
+            chapterNumberPdf++;
+        }
+
+        // clean up images
+        const tempFolder = path.join(getBasePath(), folder.path, TEMP_FOLDER_NAME);
+        if (fs.existsSync(tempFolder)) {
+            fs.rmdirSync(tempFolder, { recursive: true });
+        }
+
+        createWindowAndPrint(wrapper.outerHTML, filePath);
+        new Notice('PDF generated at: ' + filePath + '.');
+    };
+
+    const createEpub = async () => {
+        validateMetadata();
 
         type MetadataValue = string | number | boolean | undefined;
         const addIfValid = (key: string, value: MetadataValue, invalidValues: MetadataValue[]): Partial<Metadata> => {
@@ -906,22 +1033,21 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         });
 
         const dialog = window.electron.remote.dialog;
-        const getDirectory = await dialog.showOpenDialog({
-            properties: ['openDirectory']
+        const saveDialog = await dialog.showSaveDialog({
+            title: 'Save .epub',
+            filters: [
+                { name: 'EPUB', extensions: ['epub'] }
+            ]
         });
-        const folderPath = getDirectory.filePaths[0];
 
-        if (!folderPath) {
-            new Notice('Select a folder.');
+        const filePath = saveDialog.filePath;
+
+        if (!filePath) {
+            new Notice('Select a file path.');
             return;
         }
 
-        const sanitizeFilename = (filename: string) => {
-            const invalidChars = /[/\\:*?"<>|]/g;
-            return filename.replace(invalidChars, '');
-        };
-
-        await epub.write(folderPath, sanitizeFilename(metadata.title));
+        await epub.write(path.dirname(filePath), path.basename(filePath));
 
         // clean up images
         const tempFolder = path.join(getBasePath(), folder.path, TEMP_FOLDER_NAME);
@@ -929,7 +1055,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             fs.rmdirSync(tempFolder, { recursive: true });
         }
 
-        new Notice('EPUB generated at: ' + folderPath + '/' + metadata.title + '.epub');
+        new Notice('EPUB generated at: ' + filePath + '.');
     }
 
     const refreshClick = async () => {
@@ -1143,7 +1269,8 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             <div className={"modal-content " + (modalClear ? "modal-clear" : "")}>
                 <h1>Binder</h1>
                 <div>
-                    <button onClick={createEpub} className="mod-cta">BIND TO EBOOK</button>
+                    <button onClick={createEpub} className="mod-cta bind-to-ebook">Bind to eBook (.epub)</button>
+                    <button onClick={createPdf} className="bind-to-pdf" disabled>Bind to book (.pdf) (WIP)</button>
                 </div>
 
                 <div>
@@ -1574,4 +1701,4 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
     );
 };
 
-export default EpubBinderModal;
+export default BinderView;
