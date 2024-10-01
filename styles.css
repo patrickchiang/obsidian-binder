@@ -113,6 +113,12 @@ h1 {
 
 .toolbar-button {
     border-radius: 0;
+    display: block;
+    margin: 0 auto;
+    padding-left: 1em;
+    padding-right: 1em;
+    text-align: center;
+    font-size: 1em;
 }
 
 .chapters-collapsed {

@@ -429,7 +429,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
     const [currentTheme, setCurrentTheme] = useState("base");
     const [currentThemeStyle, setCurrentThemeStyle] = useState(baseTheme);
 
-    const [previewColorScheme, setPreviewColorScheme] = useState("light");
+    const [previewColorScheme, setPreviewColorScheme] = useState("sepia");
 
     const [bookLocation, setBookLocation] = useState<string | undefined>('');
     const [bookLoading, setBookLoading] = useState<boolean>(false);
@@ -468,29 +468,11 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
 
     useEffect(() => {
         if (rendition) {
-            interface ThemeList {
-                [key: string]: { color: string, backgroundColor: string };
-            }
-            const themes: ThemeList = {
-                light: {
-                    color: '#000000',
-                    backgroundColor: '#ffffff'
-                },
-                dark: {
-                    color: '#acacac',
-                    backgroundColor: '#121212'
-                },
-                sepia: {
-                    color: '#5d4232',
-                    backgroundColor: '#e7dec7'
-                },
-                green: {
-                    color: '#3a4b43',
-                    backgroundColor: '#c5e7ce'
-                }
-            };
-            rendition.themes.override("color", themes[previewColorScheme].color);
-            rendition.themes.override("background-color", themes[previewColorScheme].backgroundColor);
+            rendition.themes.select(previewColorScheme);
+            try {
+                rendition.clear();
+                rendition.start();
+            } catch { }
         }
     }, [previewColorScheme, rendition]);
 
@@ -885,6 +867,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             metadata: epubMetadata,
             options: {
                 startReading: metadata.startReading,
+                showContents: metadata.showContents
             },
             resources: resources,
             sections: sections
@@ -939,6 +922,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             author: metadata.author || "Placeholder Author",
             id: bookId || "placeholder-id",
             language: metadata.language || "en",
+            contents: metadata.tocTitle || "Table of Contents"
         };
 
         const sections: Section[] = [];
@@ -981,6 +965,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             metadata: epubMetadata,
             options: {
                 startReading: metadata.startReading,
+                showContents: metadata.showContents,
             },
             resources: resources,
             sections: sections
@@ -1007,10 +992,59 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                     margin: 0;
                     padding: 0;
                 }
+
+                html {
+                    font-family: "Georgia", "Palatino Linotype", sans-serif;
+                }
             `;
 
             doc.head.appendChild(injectStyle);
         });
+
+        interface ThemeList {
+            [key: string]: any;
+        }
+        const themes: ThemeList = {
+            light: {
+                body: {
+                    "color": '#000000',
+                    "background-color": '#ffffff'
+                },
+                a: {
+                    "color": '#0000ee'
+                }
+            },
+            dark: {
+                body: {
+                    "color": '#acacac',
+                    "background-color": '#121212'
+                },
+                a: {
+                    "color": '#8fc0e9'
+                }
+            },
+            sepia: {
+                body: {
+                    "color": '#5d4232',
+                    "background-color": '#e7dec7'
+                },
+                a: {
+                    color: '#0055aa'
+                }
+            },
+            green: {
+                body: {
+                    "color": '#3a4b43',
+                    "background-color": '#c5e7ce'
+                },
+                a: {
+                    "color": '#0055aa'
+                }
+            }
+        };
+        for (const [key, value] of Object.entries(themes)) {
+            bookRendition.themes.register(key, value);
+        }
 
         if (url) {
             bookRendition?.display(url);
@@ -1059,11 +1093,11 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             <div className={modalClear ? "ebook-preview-top" : "ebook-preview"}>
                 <div className="phone-frame">
                     <div className="phone-toolbar">
-                        <button onClick={previouPage} className="toolbar-button" aria-label="Go back one page">←</button>
+                        <button onClick={previouPage} className="toolbar-button" aria-label="Go back one page">🠜</button>
                         <PreviewColorSelect value={previewColorScheme} onChange={handlePreviewColorSchemeChange} />
                         <button onClick={jumpToTOC} className="toolbar-button" aria-label="Go to Table of Contents">Table of Contents</button>
                         <button onClick={refreshClick} className="toolbar-button" disabled={bookLoading} aria-label="Load/refresh preview">↻</button>
-                        <button onClick={nextPage} className="toolbar-button" aria-label="Go forward one page">→</button>
+                        <button onClick={nextPage} className="toolbar-button" aria-label="Go forward one page">🠞</button>
                     </div>
                     <div id="ebook-preview-render"></div>
                 </div>

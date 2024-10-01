@@ -1,7 +1,6 @@
 export const baseTheme = `
 /* Base Styles */
 body {
-    font-family: sans-serif;
     word-wrap: break-word;
 }
 
