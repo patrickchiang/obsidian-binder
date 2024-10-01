@@ -57,15 +57,4 @@ p {
 .horizontal-rule::before {
     content: "+ + + + +";
 }
-
-.binder-store-link {
-    display: inline-block;
-    width: 80px;
-    height: 80px;
-}
-
-.binder-store-link-container {
-    display: block;
-    text-align: center;
-}
 `;

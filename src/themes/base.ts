@@ -10,7 +10,7 @@ p {
     text-indent: 0;
 }
 
-p.first-paragraph:first-letter {
+section:not(.front-matter-page, .back-matter-page) p.first-paragraph:first-letter {
     font-weight: normal;
     font-size: 150%;
     float: left;
@@ -18,15 +18,15 @@ p.first-paragraph:first-letter {
     margin-bottom: -0.3245em;
 }
 
-p.first-paragraph .first-word {
+section:not(.front-matter-page, .back-matter-page) p.first-paragraph .first-word {
     color: green;
 }
 
-p.first-paragraph .first-four-words {
+section:not(.front-matter-page, .back-matter-page) p.first-paragraph .first-four-words {
     font-weight: bold;
 }
 
-p.first-paragraph:first-line {
+section:not(.front-matter-page, .back-matter-page) p.first-paragraph:first-line {
     text-transform: uppercase;
 }
 
@@ -67,16 +67,5 @@ p.first-paragraph:first-line {
 
 .horizontal-rule::before {
     content: "* * *";
-}
-
-.binder-store-link {
-    display: inline-block;
-    width: 80px;
-    height: 80px;
-}
-
-.binder-store-link-container {
-    display: block;
-    text-align: center;
 }
 `;

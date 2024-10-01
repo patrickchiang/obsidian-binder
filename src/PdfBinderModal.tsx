@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { App, FileSystemAdapter, MarkdownRenderer, Modal, Notice, TAbstractFile, TFile, TFolder } from 'obsidian';
 import { createRoot } from 'react-dom/client';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Tooltip } from 'react-tooltip';
 import yaml from 'js-yaml';
 import fs from 'fs';

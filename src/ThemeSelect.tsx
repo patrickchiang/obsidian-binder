@@ -30,7 +30,7 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({ value, onChange }) => {
             onChange={onChange}
         >
             {themes.map(theme => (
-                <option key={theme.name} value={theme.identifier}>
+                <option key={theme.identifier} value={theme.identifier}>
                     {theme.name}
                 </option>
             ))}

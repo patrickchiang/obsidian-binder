@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TAbstractFile, TFile, TFolder, WorkspaceLeaf, requestUrl } from 'obsidian';
 import { createRoot } from 'react-dom/client';
-import { DragDropContext, Droppable, Draggable, DropResult, DraggingStyle } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable, DropResult, DraggingStyle } from '@hello-pangea/dnd';
 import { icon } from '@fortawesome/fontawesome-svg-core'
 import { faCrown, faGlobe } from '@fortawesome/free-solid-svg-icons'
 import { faAmazon, faApple, faAudible, faFacebook, faPatreon, faTwitter } from '@fortawesome/free-brands-svg-icons';
-import { Tooltip } from 'react-tooltip';
 import yaml from 'js-yaml';
 import { v4 as uuid } from 'uuid';
 import numWords from 'num-words';
@@ -25,7 +24,7 @@ import ThemeSelect from './ThemeSelect.js';
 import { baseTheme } from './themes/base.js';
 import { monoTheme } from './themes/mono.js';
 import PreviewColorSelect from './PreviewColorSelect.js';
-import Themes from 'epubjs/types/themes.js';
+import { allTheme } from './themes/all.js';
 
 interface EpubMetadata extends BookMetadata {
     cover: string;
@@ -47,6 +46,7 @@ interface EpubMetadata extends BookMetadata {
     showContents: boolean;
     tocTitle: string;
     startReading: boolean;
+    theme: string;
 }
 
 export class BinderEpubIntegrationView extends ItemView {
@@ -96,6 +96,10 @@ export class BinderEpubIntegrationView extends ItemView {
         if (this.reactRoot) {
             this.reactRoot.unmount();
         }
+
+        document.querySelectorAll("section.binder-chapter").forEach(section => {
+            section.remove();
+        });
     }
 }
 
@@ -197,6 +201,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                 showContents: true,
                 tocTitle: '',
                 startReading: true,
+                theme: 'base'
             },
             chapters: files.map(file => ({
                 title: file.basename.replace(/^\d*/, '').trim(),
@@ -426,30 +431,34 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         }
     }, [updateMetadata]);
 
-    const [currentTheme, setCurrentTheme] = useState("base");
-    const [currentThemeStyle, setCurrentThemeStyle] = useState(baseTheme);
+    const themeToThemeStyle = (theme: string) => {
+        let themeStyle = '';
+        switch (theme) {
+            case 'base':
+                themeStyle = baseTheme;
+                break;
+            case 'mono':
+                themeStyle = monoTheme;
+                break;
+            default:
+        }
+        return themeStyle;
+    };
+
+    const [currentThemeStyle, setCurrentThemeStyle] = useState(themeToThemeStyle(metadata.theme));
 
     const [previewColorScheme, setPreviewColorScheme] = useState("sepia");
 
     const [bookLocation, setBookLocation] = useState<string | undefined>('');
     const [bookLoading, setBookLoading] = useState<boolean>(false);
     const [rendition, setRendition] = useState<ePub.Rendition | null>(null);
+    const renditionRef = useRef(rendition);
 
     const handleThemeChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
         const { value } = event.target;
-
-        switch (value) {
-            case 'base':
-                setCurrentThemeStyle(baseTheme);
-                break;
-            case 'mono':
-                setCurrentThemeStyle(monoTheme);
-                break;
-            default:
-        }
-
-        setCurrentTheme(value);
-    }, []);
+        setCurrentThemeStyle(themeToThemeStyle(value));
+        updateMetadata('theme', value);
+    }, [updateMetadata]);
 
     const handlePreviewColorSchemeChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
         const { value } = event.target;
@@ -467,14 +476,20 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
     };
 
     useEffect(() => {
-        if (rendition) {
-            rendition.themes.select(previewColorScheme);
+        renditionRef.current = rendition;
+    }, [rendition]);
+
+    useEffect(() => {
+        if (renditionRef.current && renditionRef.current.manager) {
+            renditionRef.current.themes.select(previewColorScheme);
             try {
-                rendition.clear();
-                rendition.start();
-            } catch { }
+                renditionRef.current.clear();
+                renditionRef.current.start();
+            } catch (error) {
+                console.error(error);
+            }
         }
-    }, [previewColorScheme, rendition]);
+    }, [previewColorScheme]);
 
     useEffect(() => {
         previewPub();
@@ -638,7 +653,25 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         const filePath = chapter.file.path;
 
         const section = document.createElement('section');
+        section.addClass('binder-chapter');
         document.body.appendChild(section);
+
+        const frontMatter = [
+            "000 Copyright",
+            "000 Find Me Online"
+        ];
+        if (frontMatter.includes(chapterName)) {
+            section.addClass('front-matter-page');
+        }
+
+        const backMatter = [
+            "999 Other Books",
+            "999 Preview Book",
+            "999 About the Author"
+        ];
+        if (backMatter.includes(chapterName)) {
+            section.addClass('back-matter-page');
+        }
 
         if (!chapter.isFrontMatter && !chapter.isBackMatter) {
             const chapterHeader = (
@@ -716,13 +749,12 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                         parent?.addClass('binder-store-link-container');
                     }
 
-                    const newLink = (
-                        <a href={linkUrl} className="binder-store-link">
-                            {iconSvg}
-                        </a>
-                    );
+                    const newLink = document.createElement('a');
+                    newLink.href = linkUrl;
+                    newLink.innerHTML = iconSvg;
+                    newLink.addClass('binder-store-link');
 
-                    link.outerHTML = renderToStaticMarkup(newLink);
+                    link.replaceWith(newLink);
                 }
             }
         });
@@ -842,7 +874,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             const html = await makeHTML(readFile, chapter, chapterNumber);
             let chapterTitle = chapter.title;
             if (!chapter.isFrontMatter && !chapter.isBackMatter) {
-                chapterTitle = chapterNumber + '. ' + chapter.title;
+                chapterTitle = chapter.title;
                 chapterNumber++;
             }
 
@@ -863,7 +895,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         }
 
         const epub = new Epub({
-            css: currentThemeStyle,
+            css: currentThemeStyle + allTheme,
             metadata: epubMetadata,
             options: {
                 startReading: metadata.startReading,
@@ -912,12 +944,14 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
 
         const bookId = metadata.identifier || uuid();
 
-        // Convert base64 string to Buffer
+        const coverData = metadata.cover ?
+            fs.readFileSync(metadata.cover) : Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgEB/eqNlgAAAABJRU5ErkJggg==", 'base64');
+
         const epubMetadata: Metadata = {
             title: metadata.title || "Placeholder Title",
             cover: {
                 name: metadata.cover,
-                data: fs.readFileSync(metadata.cover) || Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgEB/eqNlgAAAABJRU5ErkJggg==", 'base64'),
+                data: coverData
             },
             author: metadata.author || "Placeholder Author",
             id: bookId || "placeholder-id",
@@ -940,7 +974,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             const html = await makeHTML(readFile, chapter, chapterNumber);
             let chapterTitle = chapter.title;
             if (!chapter.isFrontMatter && !chapter.isBackMatter) {
-                chapterTitle = chapterNumber + '. ' + chapter.title;
+                chapterTitle = chapter.title;
                 chapterNumber++;
             }
 
@@ -997,12 +1031,13 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                     font-family: "Georgia", "Palatino Linotype", sans-serif;
                 }
             `;
+            injectStyle.textContent += allTheme;
 
             doc.head.appendChild(injectStyle);
         });
 
         interface ThemeList {
-            [key: string]: any;
+            [key: string]: object;
         }
         const themes: ThemeList = {
             light: {
@@ -1045,6 +1080,8 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         for (const [key, value] of Object.entries(themes)) {
             bookRendition.themes.register(key, value);
         }
+
+        bookRendition.themes.select(previewColorScheme);
 
         if (url) {
             bookRendition?.display(url);
@@ -1125,7 +1162,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                             </HelperTooltip>
                         </div>
 
-                        <ThemeSelect value={currentTheme} onChange={handleThemeChange} />
+                        <ThemeSelect value={metadata.theme} onChange={handleThemeChange} />
                     </div>
                 </div>
 
@@ -1154,29 +1191,6 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                     </div>
                     <div>
                         <div className='metadata-label'>
-                            <label htmlFor="cover">Cover Image</label>
-                            <HelperTooltip>
-                                The cover image of the book. Supported formats: SVG, PNG, JPG, JPEG, GIF, TIF, TIFF.
-                            </HelperTooltip>
-                        </div>
-
-                        <input
-                            type="file"
-                            id="cover"
-                            className="metadata-input upload-file"
-                            accept=".svg, .png, .jpg, .jpeg, .gif, .tif, .tiff"
-                            onChange={handleFileChange}
-                        />
-                        <button className="select-cover" onClick={() => document.getElementById('cover')?.click()}>Choose file</button>
-
-                        {metadata.cover && (
-                            <span className="select-cover-text">
-                                file: {path.basename(metadata.cover)}
-                            </span>
-                        )}
-                    </div>
-                    <div>
-                        <div className='metadata-label'>
                             <label htmlFor="author">Author</label>
                             <HelperTooltip>
                                 The author of the book.
@@ -1200,6 +1214,33 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                         </div>
 
                         <LanguageSelect value={metadata.language} onChange={handleLanguageChange} />
+                    </div>
+
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="cover">Cover Image</label>
+                            <HelperTooltip>
+                                The cover image of the book. Supported formats: SVG, PNG, JPG, JPEG, GIF, TIF, TIFF.
+                            </HelperTooltip>
+                        </div>
+
+                        <input
+                            type="file"
+                            id="cover"
+                            className="metadata-input upload-file"
+                            accept=".svg, .png, .jpg, .jpeg, .gif, .tif, .tiff"
+                            onChange={handleFileChange}
+                        />
+                        <button className="select-cover" onClick={() => document.getElementById('cover')?.click()}>Choose file</button>
+
+                        {metadata.cover && (
+                            <div className="select-cover-text">
+                                file: {metadata.cover}
+                                <img src={
+                                    `data:image/jpeg;base64,${fs.readFileSync(metadata.cover).toString('base64')}`
+                                } className="cover-preview"></img>
+                            </div>
+                        )}
                     </div>
 
                     <h2>
