@@ -676,7 +676,33 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         }
 
         await MarkdownRenderer.render(app, markdown, section, filePath, plugin);
-        section.querySelector('p')?.addClass('dropcap');
+        const firstParagraph = section.querySelector('p');
+        if (firstParagraph) {
+            const paragraph = firstParagraph.textContent || "";
+            const wordArray = paragraph.split(' ');
+
+            let replacementText = paragraph;
+            const wordCount = wordArray.length;
+            if (wordCount >= 4) {
+                replacementText = renderToStaticMarkup(<>
+                    <span className="first-four-words">
+                        <span className="first-word">{wordArray?.[0]} </span>
+                        {wordArray?.[1]} {wordArray?.[2]} {wordArray?.[3]} </span>
+                    {wordArray?.slice(4).join(' ')}
+                </>);
+            } else if (wordCount > 0) {
+                replacementText = renderToStaticMarkup(<>
+                    <span className="first-word">{wordArray?.[0]} </span>
+                    {wordArray?.slice(1).join(' ')}
+                </>);
+            }
+
+            const replacementParagraph = document.createElement('p');
+            replacementParagraph.innerHTML = replacementText;
+            replacementParagraph.addClass('first-paragraph');
+
+            firstParagraph.replaceWith(replacementParagraph);
+        }
 
         // replace horizontal rules with asterisks
         const horizontalRules = section.querySelectorAll('hr');
@@ -1018,7 +1044,8 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
     };
 
     const getModalWidth = () => {
-        return document.querySelector(".modal-content")?.clientWidth || 0;
+        const leaf = app.workspace.getLeavesOfType("binder-view");
+        return leaf[0].view.containerEl.clientWidth || 0;
     };
 
     const [modalClear, setModalClear] = useState(getModalWidth() < 1000);
@@ -1045,7 +1072,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             <div className={"modal-content " + (modalClear ? "modal-clear" : "")}>
                 <h1>Binder</h1>
                 <div>
-                    <button onClick={createEpub} className="mod-cta">BIND</button>
+                    <button onClick={createEpub} className="mod-cta">BIND TO EBOOK</button>
                 </div>
 
                 <div>

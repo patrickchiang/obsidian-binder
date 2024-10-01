@@ -1,7 +1,14 @@
 export const monoTheme = `
 /* Base Styles */
 body {
-    font-family: "Courier", monospace;
+    font-family: monospace;
+    word-wrap: break-word;
+}
+
+p {
+    font-size: 1em;
+    text-align: justify;
+    text-indent: 0;
 }
 
 .chapter-number{
@@ -37,13 +44,6 @@ body {
     margin-bottom: 1rem;
     margin-left: 20%;
     margin-right: 20%;
-}
-
-p.dropcap:first-letter {
-    color: red;
-    float: left;
-    font-size: 3rem;
-    line-height: 3rem;
 }
 
 .horizontal-rule {

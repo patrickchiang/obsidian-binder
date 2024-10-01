@@ -1,7 +1,34 @@
 export const baseTheme = `
 /* Base Styles */
 body {
-    font-family: "Amazon Ember", sans-serif;
+    font-family: sans-serif;
+    word-wrap: break-word;
+}
+
+p {
+    font-size: 1em;
+    text-align: justify;
+    text-indent: 0;
+}
+
+p.first-paragraph:first-letter {
+    font-weight: normal;
+    font-size: 150%;
+    float: left;
+    margin-top: -0.3225em;
+    margin-bottom: -0.3245em;
+}
+
+p.first-paragraph .first-word {
+    color: green;
+}
+
+p.first-paragraph .first-four-words {
+    font-weight: bold;
+}
+
+p.first-paragraph:first-line {
+    text-transform: uppercase;
 }
 
 .chapter-number{
