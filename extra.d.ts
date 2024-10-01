@@ -20,3 +20,10 @@ declare global {
         electron: any;
     }
 }
+
+import { Location } from "epubjs";
+declare module "epubjs" {
+    interface Rendition {
+        currentLocation(): Location;
+    }
+}

@@ -1,18 +1,28 @@
 import PropTypes from 'prop-types';
 import { CircleHelp } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface HelperTooltipProps {
     children: React.ReactNode;
 }
 
 const HelperTooltip: React.FC<HelperTooltipProps> = ({ children }) => {
+    const spanRef = useRef<HTMLSpanElement>(null);
+    const [iconSize, setIconSize] = useState<number | undefined>(undefined);
+
+    useEffect(() => {
+        if (spanRef.current) {
+            const computedStyle = window.getComputedStyle(spanRef.current);
+            const lineHeight = computedStyle.lineHeight;
+            const parsedLineHeight = parseFloat(lineHeight);
+            setIconSize(parsedLineHeight || undefined);
+        }
+    }, []);
+
     return (
-        <CircleHelp
-            data-tooltip-id="helper-tooltip"
-            data-tooltip-content={children}
-            data-tooltip-place="bottom"
-            data-tooltip-position-strategy="fixed"
-            size={12} />
+        <span aria-label={String(children)} className="binder-tooltip-helper" ref={spanRef}>
+            <CircleHelp size={iconSize} />
+        </span>
     );
 };
 

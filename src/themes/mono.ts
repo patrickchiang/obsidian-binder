@@ -31,6 +31,14 @@ body {
     font-size: 1.9rem;
 }
 
+.chapter-title-divider {
+    border-top: 3px solid #000;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    margin-left: 20%;
+    margin-right: 20%;
+}
+
 p.dropcap:first-letter {
     color: red;
     float: left;

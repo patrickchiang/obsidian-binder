@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TAbstractFile, TFile, TFolder, WorkspaceLeaf, addIcon, requestUrl, setIcon } from 'obsidian';
+import React, { useState, useCallback, useEffect } from 'react';
+import { FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TAbstractFile, TFile, TFolder, WorkspaceLeaf, requestUrl } from 'obsidian';
 import { createRoot } from 'react-dom/client';
 import { DragDropContext, Droppable, Draggable, DropResult, DraggingStyle } from 'react-beautiful-dnd';
 import { icon } from '@fortawesome/fontawesome-svg-core'
@@ -9,9 +9,9 @@ import { Tooltip } from 'react-tooltip';
 import yaml from 'js-yaml';
 import { v4 as uuid } from 'uuid';
 import numWords from 'num-words';
+import ePub from 'epubjs';
 import fs from 'fs';
 import path from 'path';
-import ePub from 'epubjs';
 
 import Epub, { Metadata, Resource, Section } from 'nodepub';
 
@@ -24,6 +24,8 @@ import ThemeSelect from './ThemeSelect.js';
 
 import { baseTheme } from './themes/base.js';
 import { monoTheme } from './themes/mono.js';
+import PreviewColorSelect from './PreviewColorSelect.js';
+import Themes from 'epubjs/types/themes.js';
 
 interface EpubMetadata extends BookMetadata {
     cover: string;
@@ -66,6 +68,15 @@ export class BinderEpubIntegrationView extends ItemView {
     }
 
     async onOpen() {
+        const defaultOnErrorFn = window.onerror;
+
+        window.onerror = (...args) => {
+            if (args[0] === 'ResizeObserver loop limit exceeded') {
+                return true;
+            } else {
+                return defaultOnErrorFn?.(...args);
+            }
+        };
     }
 
     startRender(folder: TAbstractFile) {
@@ -415,6 +426,15 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         }
     }, [updateMetadata]);
 
+    const [currentTheme, setCurrentTheme] = useState("base");
+    const [currentThemeStyle, setCurrentThemeStyle] = useState(baseTheme);
+
+    const [previewColorScheme, setPreviewColorScheme] = useState("light");
+
+    const [bookLocation, setBookLocation] = useState<string | undefined>('');
+    const [bookLoading, setBookLoading] = useState<boolean>(false);
+    const [rendition, setRendition] = useState<ePub.Rendition | null>(null);
+
     const handleThemeChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
         const { value } = event.target;
 
@@ -431,14 +451,51 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         setCurrentTheme(value);
     }, []);
 
+    const handlePreviewColorSchemeChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+        const { value } = event.target;
+        setPreviewColorScheme(value);
+    }, []);
+
+    const jumpToTOC = async () => {
+        const location = "content/toc.xhtml";
+        if (rendition) {
+            rendition.display(location);
+        } else {
+            await previewPub(location);
+        }
+        setBookLocation(location);
+    };
+
+    useEffect(() => {
+        if (rendition) {
+            interface ThemeList {
+                [key: string]: { color: string, backgroundColor: string };
+            }
+            const themes: ThemeList = {
+                light: {
+                    color: '#000000',
+                    backgroundColor: '#ffffff'
+                },
+                dark: {
+                    color: '#acacac',
+                    backgroundColor: '#121212'
+                },
+                sepia: {
+                    color: '#5d4232',
+                    backgroundColor: '#e7dec7'
+                },
+                green: {
+                    color: '#3a4b43',
+                    backgroundColor: '#c5e7ce'
+                }
+            };
+            rendition.themes.override("color", themes[previewColorScheme].color);
+            rendition.themes.override("background-color", themes[previewColorScheme].backgroundColor);
+        }
+    }, [previewColorScheme, rendition]);
+
     const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
     const [optionalMetadataCollapsed, setOptionalMetadataCollapsed] = useState(true);
-
-    const [currentTheme, setCurrentTheme] = useState("base");
-    const [currentThemeStyle, setCurrentThemeStyle] = useState(baseTheme);
-
-    const [bookLocation, setBookLocation] = useState('');
-    const [rendition, setRendition] = useState<ePub.Rendition | null>(null);
 
     const findRelativeParentOffsetTop = (element: HTMLElement | null) => {
         let currentElement = element;
@@ -607,6 +664,7 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                             {capitalize(numWords(chapterNumber))}
                         </span>
                     </h1>
+                    <div className="chapter-title-divider"></div>
                     <h1 className="chapter-title">{chapterName}</h1>
                 </>
             );
@@ -829,7 +887,16 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         new Notice('EPUB generated at: ' + folderPath + '/' + metadata.title + '.epub');
     }
 
-    const previewPub = async () => {
+    const refreshClick = async () => {
+        previewPub();
+    };
+
+    const previewPub = async (url?: string) => {
+        setBookLoading(true);
+
+        document.querySelector("#ebook-preview-render")?.empty();
+        rendition?.destroy();
+
         const bookId = metadata.identifier || uuid();
 
         // Convert base64 string to Buffer
@@ -889,26 +956,15 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             sections: sections
         });
 
-        await epub.write(path.join(getBasePath(), folder.path), "temp.epub");
-
-        // clean up images
-        const tempFolder = path.join(getBasePath(), folder.path, TEMP_FOLDER_NAME);
-        if (fs.existsSync(tempFolder)) {
-            fs.rmdirSync(tempFolder, { recursive: true });
-        }
-
-        const buffer = fs.readFileSync(path.join(getBasePath(), folder.path, "temp.epub"));
+        const buffer = await epub.buffer();
         const blob = new Blob([buffer], { type: 'application/epub+zip' });
 
         // @ts-ignore
         const book = ePub.default(blob);
 
-        document.querySelector("#ebook-preview-render")?.empty();
-
         const bookRendition = book.renderTo("ebook-preview-render", { width: "100%", height: "100%" });
         setRendition(bookRendition);
         book.spine.hooks.content.register((doc: Document) => {
-            console.log('setting style')
             doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
                 link.remove();
             });
@@ -926,21 +982,34 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             doc.head.appendChild(injectStyle);
         });
 
-        // bookRendition?.display();
-        if (bookLocation){
+        if (url) {
+            bookRendition?.display(url);
+        } else if (bookLocation) {
             bookRendition?.display(bookLocation);
         } else {
             bookRendition?.display();
         }
+
+        bookRendition.hooks.content.register((content: Document) => {
+            setBookLoading(false);
+        });
     };
 
-    const previouPage = () => {
-        rendition?.prev();
+    const previouPage = async () => {
+        if (rendition) {
+            await rendition.prev();
+        } else {
+            previewPub();
+        }
         setBookLocation(rendition?.currentLocation().start.cfi);
     };
 
-    const nextPage = () => {
-        rendition?.next();
+    const nextPage = async () => {
+        if (rendition) {
+            await rendition.next();
+        } else {
+            previewPub();
+        }
         setBookLocation(rendition?.currentLocation().start.cfi);
     };
 
@@ -951,13 +1020,19 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
             <h1>Binder</h1>
             <div>
                 <button onClick={createEpub} className="mod-cta">Bind to EPUB</button>
-                <button onClick={previewPub} className="mod-cta">Preview</button>
             </div>
 
             <div className="ebook-preview">
-                <button onClick={previouPage} className="previous-button">←</button>
-                <button onClick={nextPage} className="next-button">→</button>
-                <div id="ebook-preview-render"></div>
+                <div className="phone-frame">
+                    <div className="phone-toolbar">
+                        <button onClick={previouPage} className="toolbar-button" aria-label="Go back one page">←</button>
+                        <PreviewColorSelect value={previewColorScheme} onChange={handlePreviewColorSchemeChange} />
+                        <button onClick={jumpToTOC} className="toolbar-button" aria-label="Go to Table of Contents">Table of Contents</button>
+                        <button onClick={refreshClick} className="toolbar-button" disabled={bookLoading} aria-label="Load/refresh preview">↻</button>
+                        <button onClick={nextPage} className="toolbar-button" aria-label="Go forward one page">→</button>
+                    </div>
+                    <div id="ebook-preview-render"></div>
+                </div>
             </div>
 
             <div>

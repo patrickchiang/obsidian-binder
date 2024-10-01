@@ -56,6 +56,12 @@ h1 {
     margin-bottom: 1em;
 }
 
+.binder-tooltip-helper {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
 .draggable-setting {
     background-color: #4a4a4a;
     border-radius: 4px;
@@ -72,20 +78,33 @@ h1 {
 .ebook-preview {
     float: right;
     width: 400px;
+}
+
+.phone-frame {
+    width: 400px;
     height: 800px;
-    background-color: white;
+    background-color: black;
+    border: 20px solid black;
+    border-radius: 40px;
+    padding-top: 50px;
+    padding-bottom: 50px;
+    text-align: center;
 }
 
 #ebook-preview-render {
     width: 100%;
     height: 100%;
+    background-color: white;
+    text-align: center;
 }
 
-.next-button {
-    float: right;
-    border-radius: 0;
+.phone-toolbar {
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: 10px;
 }
-.previous-button {
+
+.toolbar-button {
     border-radius: 0;
 }
 
@@ -170,7 +189,7 @@ h1 {
     vertical-align: middle;
 }
 
-.collapse-metadata-header{
+.collapse-metadata-header {
     cursor: pointer;
 }
 
