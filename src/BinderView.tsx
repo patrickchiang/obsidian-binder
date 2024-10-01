@@ -83,13 +83,13 @@ export class BinderIntegrationView extends ItemView {
     }
 
     async onOpen() {
-        const defaultOnErrorFn = window.onerror;
-
-        window.onerror = (...args) => {
-            if (args[0] === 'ResizeObserver loop limit exceeded') {
-                return true;
-            } else {
-                return defaultOnErrorFn?.(...args);
+        window.ResizeObserver = class CalmResizeObserver extends ResizeObserver {
+            constructor(callback: ResizeObserverCallback) {
+                super(callback);
+                if (!window.binderObservers) {
+                    window.binderObservers = [];
+                }
+                window.binderObservers.push(this);
             }
         };
     }
@@ -100,7 +100,15 @@ export class BinderIntegrationView extends ItemView {
 
         const { contentEl } = this;
 
+        if (this.reactRoot) {
+            this.reactRoot.unmount();
+        }
         contentEl.empty();
+        if (window.binderObservers) {
+            window.binderObservers.forEach(observer => {
+                observer.disconnect();
+            });
+        }
 
         const reactContainer = contentEl.createDiv();
         this.reactRoot = createRoot(reactContainer);
@@ -108,6 +116,12 @@ export class BinderIntegrationView extends ItemView {
     }
 
     async onClose() {
+        if (window.binderObservers) {
+            window.binderObservers.forEach(observer => {
+                observer.disconnect();
+            });
+        }
+
         if (this.reactRoot) {
             this.reactRoot.unmount();
         }
@@ -1240,20 +1254,14 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         setBookLocation(rendition?.currentLocation().start.cfi);
     };
 
-    const getModalWidth = () => {
-        const leaf = app.workspace.getLeavesOfType("binder-view");
-        return leaf[0].view.containerEl.clientWidth || 0;
-    };
-
-    const [modalClear, setModalClear] = useState(getModalWidth() < 1000);
-
-    window.addEventListener('resize', () => {
-        setModalClear(getModalWidth() < 1000);
-    });
+    const [windowReady, setWindowReady] = useState<boolean>(false);
+    useEffect(() => {
+        setWindowReady(true);
+    }, [])
 
     return (
         <>
-            <div className={modalClear ? "ebook-preview-top" : "ebook-preview"}>
+            <div className="ebook-preview">
                 <div className="phone-frame">
                     <div className="phone-toolbar">
                         <button onClick={previouPage} className="toolbar-button" aria-label="Go back one page">🠜</button>
@@ -1266,7 +1274,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                 </div>
             </div>
 
-            <div className={"modal-content " + (modalClear ? "modal-clear" : "")}>
+            <div className="modal-content">
                 <h1>Binder</h1>
                 <div>
                     <button onClick={createEpub} className="mod-cta bind-to-ebook">Bind to eBook (.epub)</button>
@@ -1682,12 +1690,12 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     </div>
                 </div>
 
-                <DragDropContext onDragEnd={onDragEnd}>
+                {windowReady && (<DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId="chapters">
                         {(provided) => (
                             <div
-                                {...provided.droppableProps}
                                 ref={provided.innerRef}
+                                {...provided.droppableProps}
                                 className="chapter-list"
                             >
                                 {chapters.map(renderChapter)}
@@ -1695,7 +1703,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             </div>
                         )}
                     </Droppable>
-                </DragDropContext>
+                </DragDropContext>)}
             </div>
         </>
     );

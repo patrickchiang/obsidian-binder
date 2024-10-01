@@ -50,10 +50,6 @@ h1 {
 
 }
 
-.modal-clear {
-    clear: both;
-}
-
 .metadata-explanation {
     font-size: 0.8em;
     color: red;
@@ -88,8 +84,11 @@ h1 {
     float: right;
 }
 
-.ebook-preview-top {
-    margin-bottom: 3em;
+@media (max-width: 800px) {
+    .ebook-preview {
+        float: none;
+        margin-bottom: 3em;
+    }
 }
 
 .phone-frame {
@@ -207,7 +206,7 @@ h1 {
     vertical-align: middle;
 }
 
-.cover-preview{
+.cover-preview {
     width: 300px;
     display: block;
 }
