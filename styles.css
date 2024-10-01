@@ -50,6 +50,10 @@ h1 {
 
 }
 
+.modal-clear {
+    clear: both;
+}
+
 .metadata-explanation {
     font-size: 0.8em;
     color: red;
@@ -77,11 +81,14 @@ h1 {
 
 .ebook-preview {
     float: right;
-    width: 400px;
+}
+
+.ebook-preview-top {
+    margin-bottom: 3em;
 }
 
 .phone-frame {
-    width: 400px;
+    width: 450px;
     height: 800px;
     background-color: black;
     border: 20px solid black;

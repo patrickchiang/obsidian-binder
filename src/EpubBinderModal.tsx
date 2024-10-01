@@ -494,6 +494,10 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         }
     }, [previewColorScheme, rendition]);
 
+    useEffect(() => {
+        previewPub();
+    }, [currentThemeStyle]);
+
     const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
     const [optionalMetadataCollapsed, setOptionalMetadataCollapsed] = useState(true);
 
@@ -1013,16 +1017,19 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
         setBookLocation(rendition?.currentLocation().start.cfi);
     };
 
+    const getModalWidth = () => {
+        return document.querySelector(".modal-content")?.clientWidth || 0;
+    };
+
+    const [modalClear, setModalClear] = useState(getModalWidth() < 1000);
+
+    window.addEventListener('resize', () => {
+        setModalClear(getModalWidth() < 1000);
+    });
+
     return (
-        <div className="modal-content">
-            <Tooltip id="helper-tooltip" style={{ zIndex: 100, maxWidth: 600 }} />
-
-            <h1>Binder</h1>
-            <div>
-                <button onClick={createEpub} className="mod-cta">Bind to EPUB</button>
-            </div>
-
-            <div className="ebook-preview">
+        <>
+            <div className={modalClear ? "ebook-preview-top" : "ebook-preview"}>
                 <div className="phone-frame">
                     <div className="phone-toolbar">
                         <button onClick={previouPage} className="toolbar-button" aria-label="Go back one page">←</button>
@@ -1035,426 +1042,433 @@ const EpubBinderModal: React.FC<BinderModalProps> = ({ app, folder, plugin }) =>
                 </div>
             </div>
 
-            <div>
-                <h2>
-                    Themes
-                    <HelperTooltip>
-                        Theme and styling to apply to chapters.
-                    </HelperTooltip>
-                </h2>
-
+            <div className={"modal-content " + (modalClear ? "modal-clear" : "")}>
+                <h1>Binder</h1>
                 <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="theme-choose">Premade Theme</label>
-                        <HelperTooltip>
-                            The premade theme to apply to the book.
-                        </HelperTooltip>
-                    </div>
-
-                    <ThemeSelect value={currentTheme} onChange={handleThemeChange} />
+                    <button onClick={createEpub} className="mod-cta">BIND</button>
                 </div>
-            </div>
 
-            <div className="metadata-section">
-                <h2>
-                    Metadata (Required)
-                    <HelperTooltip>
-                        All fields in this section are required.
-                    </HelperTooltip>
-                </h2>
                 <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="title">Title</label>
+                    <h2>
+                        Themes
                         <HelperTooltip>
-                            The title of the book.
+                            Theme and styling to apply to chapters.
                         </HelperTooltip>
-                    </div>
+                    </h2>
 
-                    <input
-                        type="text"
-                        id="title"
-                        className="metadata-input"
-                        value={metadata.title}
-                        onChange={handleTextInputChange}
-                    />
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="theme-choose">Premade Theme</label>
+                            <HelperTooltip>
+                                The premade theme to apply to the book.
+                            </HelperTooltip>
+                        </div>
+
+                        <ThemeSelect value={currentTheme} onChange={handleThemeChange} />
+                    </div>
                 </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="cover">Cover Image</label>
+
+                <div className="metadata-section">
+                    <h2>
+                        Metadata (Required)
                         <HelperTooltip>
-                            The cover image of the book. Supported formats: SVG, PNG, JPG, JPEG, GIF, TIF, TIFF.
+                            All fields in this section are required.
                         </HelperTooltip>
+                    </h2>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="title">Title</label>
+                            <HelperTooltip>
+                                The title of the book.
+                            </HelperTooltip>
+                        </div>
+
+                        <input
+                            type="text"
+                            id="title"
+                            className="metadata-input"
+                            value={metadata.title}
+                            onChange={handleTextInputChange}
+                        />
+                    </div>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="cover">Cover Image</label>
+                            <HelperTooltip>
+                                The cover image of the book. Supported formats: SVG, PNG, JPG, JPEG, GIF, TIF, TIFF.
+                            </HelperTooltip>
+                        </div>
+
+                        <input
+                            type="file"
+                            id="cover"
+                            className="metadata-input upload-file"
+                            accept=".svg, .png, .jpg, .jpeg, .gif, .tif, .tiff"
+                            onChange={handleFileChange}
+                        />
+                        <button className="select-cover" onClick={() => document.getElementById('cover')?.click()}>Choose file</button>
+
+                        {metadata.cover && (
+                            <span className="select-cover-text">
+                                file: {path.basename(metadata.cover)}
+                            </span>
+                        )}
+                    </div>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="author">Author</label>
+                            <HelperTooltip>
+                                The author of the book.
+                            </HelperTooltip>
+                        </div>
+
+                        <input
+                            type="text"
+                            id="author"
+                            className="metadata-input"
+                            value={metadata.author}
+                            onChange={handleTextInputChange}
+                        />
+                    </div>
+                    <div>
+                        <div className='metadata-label'>
+                            <label htmlFor="language">Language</label>
+                            <HelperTooltip>
+                                The language of the book for e-reader identification.
+                            </HelperTooltip>
+                        </div>
+
+                        <LanguageSelect value={metadata.language} onChange={handleLanguageChange} />
                     </div>
 
-                    <input
-                        type="file"
-                        id="cover"
-                        className="metadata-input upload-file"
-                        accept=".svg, .png, .jpg, .jpeg, .gif, .tif, .tiff"
-                        onChange={handleFileChange}
-                    />
-                    <button className="select-cover" onClick={() => document.getElementById('cover')?.click()}>Choose file</button>
-
-                    {metadata.cover && (
-                        <span className="select-cover-text">
-                            file: {path.basename(metadata.cover)}
+                    <h2>
+                        <span onClick={() => setOptionalMetadataCollapsed(!optionalMetadataCollapsed)} className="collapse-metadata-header">
+                            <span className="collapse-metadata-icon">{optionalMetadataCollapsed ? '▶' : '▼'}</span> Optional Metadata
                         </span>
-                    )}
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="author">Author</label>
                         <HelperTooltip>
-                            The author of the book.
+                            Metadata fields in this section are optional. These fields may not be shown to all e-readers.
                         </HelperTooltip>
+                    </h2>
+
+                    <div className={optionalMetadataCollapsed ? 'metadata-section-collapsed' : ''}>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="identifier">Identifier</label>
+                                <HelperTooltip>
+                                    The identifier of the book. This can be an ISBN, or any number you want to use to identify it.
+                                </HelperTooltip>
+                            </div>
+
+                            <input
+                                type="text"
+                                id="identifier"
+                                className="metadata-input"
+                                value={metadata.identifier}
+                                onChange={handleTextInputChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="description">Description</label>
+                                <HelperTooltip>
+                                    A short description of the book.
+                                    Should be a single, complete sentence ending in a period, not restate the title, be typogrified, and summarize the main theme or plot thread.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="text"
+                                id="description"
+                                className="metadata-input"
+                                value={metadata.description}
+                                onChange={handleTextInputChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="series">Series</label>
+                                <HelperTooltip>
+                                    The series the book belongs to.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="text"
+                                id="series"
+                                className="metadata-input"
+                                value={metadata.series}
+                                onChange={handleTextInputChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="sequence">Sequence</label>
+                                <HelperTooltip>
+                                    The sequence number of the book in the series.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="number"
+                                id="sequence"
+                                className="metadata-input"
+                                value={metadata.sequence != undefined && metadata.sequence >= 0 ? metadata.sequence : ''}
+                                onChange={handleNumberChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="fileAs">File As</label>
+                                <HelperTooltip>
+                                    The sortable version of the author's name for overriding the name. Last name, First.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="text"
+                                id="fileAs"
+                                className="metadata-input"
+                                value={metadata.fileAs}
+                                onChange={handleTextInputChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="genre">Genre</label>
+                                <HelperTooltip>
+                                    The genre of the book. (e.g. Fiction, Non-Fiction, Fantasy, Mystery, etc.)
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="text"
+                                id="genre"
+                                className="metadata-input"
+                                value={metadata.genre}
+                                onChange={handleTextInputChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="tags">Tags</label>
+                                <HelperTooltip>
+                                    A comma-separated list of tags for the book.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="text"
+                                id="tags"
+                                className="metadata-input"
+                                value={metadata.tags}
+                                onChange={handleTextInputChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="copyright">Copyright</label>
+                                <HelperTooltip>
+                                    The copyright information. (e.g. © 2024 Author Name)
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="text"
+                                id="copyright"
+                                className="metadata-input"
+                                value={metadata.copyright}
+                                onChange={handleTextInputChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="publisher">Publisher</label>
+                                <HelperTooltip>
+                                    The publisher of the book.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="text"
+                                id="publisher"
+                                className="metadata-input"
+                                value={metadata.publisher}
+                                onChange={handleTextInputChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="published">Published</label>
+                                <HelperTooltip>
+                                    The published date of the book. (e.g. 2024-01-01)
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="text"
+                                id="published"
+                                className="metadata-input"
+                                value={metadata.published}
+                                onChange={handleTextInputChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="transcriptionSource">Transcription Source</label>
+                                <HelperTooltip>
+                                    The source of the transcription.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="text"
+                                id="transcriptionSource"
+                                className="metadata-input"
+                                value={metadata.transcriptionSource}
+                                onChange={handleTextInputChange}
+                            />
+                        </div>
                     </div>
 
-                    <input
-                        type="text"
-                        id="author"
-                        className="metadata-input"
-                        value={metadata.author}
-                        onChange={handleTextInputChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="language">Language</label>
+                    <h2>
+                        Table of Contents Options
                         <HelperTooltip>
-                            The language of the book for e-reader identification.
+                            Optional fields for handing table of contents.
                         </HelperTooltip>
-                    </div>
+                    </h2>
 
-                    <LanguageSelect value={metadata.language} onChange={handleLanguageChange} />
-                </div>
-
-                <h2>
-                    <span onClick={() => setOptionalMetadataCollapsed(!optionalMetadataCollapsed)} className="collapse-metadata-header">
-                        <span className="collapse-metadata-icon">{optionalMetadataCollapsed ? '▶' : '▼'}</span> Optional Metadata
-                    </span>
-                    <HelperTooltip>
-                        Metadata fields in this section are optional. These fields may not be shown to all e-readers.
-                    </HelperTooltip>
-                </h2>
-
-                <div className={optionalMetadataCollapsed ? 'metadata-section-collapsed' : ''}>
                     <div>
                         <div className='metadata-label'>
-                            <label htmlFor="identifier">Identifier</label>
+                            <label htmlFor="tocTitle">Table of Contents</label>
                             <HelperTooltip>
-                                The identifier of the book. This can be an ISBN, or any number you want to use to identify it.
+                                The title to override for the table of contents. Leave blank for: Table of Contents.
                             </HelperTooltip>
                         </div>
-
                         <input
                             type="text"
-                            id="identifier"
+                            id="tocTitle"
                             className="metadata-input"
-                            value={metadata.identifier}
+                            value={metadata.tocTitle}
                             onChange={handleTextInputChange}
                         />
                     </div>
                     <div>
                         <div className='metadata-label'>
-                            <label htmlFor="description">Description</label>
+                            <label htmlFor="showContents">Show Table of Contents</label>
                             <HelperTooltip>
-                                A short description of the book.
-                                Should be a single, complete sentence ending in a period, not restate the title, be typogrified, and summarize the main theme or plot thread.
+                                Show the table of contents in the book. Default: true. Uncheck to hide the table of contents.
                             </HelperTooltip>
                         </div>
                         <input
-                            type="text"
-                            id="description"
-                            className="metadata-input"
-                            value={metadata.description}
-                            onChange={handleTextInputChange}
+                            type="checkbox"
+                            id="showContents"
+                            checked={metadata.showContents}
+                            onChange={handleCheckedChange}
                         />
                     </div>
                     <div>
                         <div className='metadata-label'>
-                            <label htmlFor="series">Series</label>
+                            <label htmlFor="startReading">Start Reading</label>
                             <HelperTooltip>
-                                The series the book belongs to.
+                                Start reading the book from after the table of contents. Default: true. Uncheck to start reading from cover page.
                             </HelperTooltip>
                         </div>
                         <input
-                            type="text"
-                            id="series"
-                            className="metadata-input"
-                            value={metadata.series}
-                            onChange={handleTextInputChange}
-                        />
-                    </div>
-                    <div>
-                        <div className='metadata-label'>
-                            <label htmlFor="sequence">Sequence</label>
-                            <HelperTooltip>
-                                The sequence number of the book in the series.
-                            </HelperTooltip>
-                        </div>
-                        <input
-                            type="number"
-                            id="sequence"
-                            className="metadata-input"
-                            value={metadata.sequence != undefined && metadata.sequence >= 0 ? metadata.sequence : ''}
-                            onChange={handleNumberChange}
-                        />
-                    </div>
-                    <div>
-                        <div className='metadata-label'>
-                            <label htmlFor="fileAs">File As</label>
-                            <HelperTooltip>
-                                The sortable version of the author's name for overriding the name. Last name, First.
-                            </HelperTooltip>
-                        </div>
-                        <input
-                            type="text"
-                            id="fileAs"
-                            className="metadata-input"
-                            value={metadata.fileAs}
-                            onChange={handleTextInputChange}
-                        />
-                    </div>
-                    <div>
-                        <div className='metadata-label'>
-                            <label htmlFor="genre">Genre</label>
-                            <HelperTooltip>
-                                The genre of the book. (e.g. Fiction, Non-Fiction, Fantasy, Mystery, etc.)
-                            </HelperTooltip>
-                        </div>
-                        <input
-                            type="text"
-                            id="genre"
-                            className="metadata-input"
-                            value={metadata.genre}
-                            onChange={handleTextInputChange}
-                        />
-                    </div>
-                    <div>
-                        <div className='metadata-label'>
-                            <label htmlFor="tags">Tags</label>
-                            <HelperTooltip>
-                                A comma-separated list of tags for the book.
-                            </HelperTooltip>
-                        </div>
-                        <input
-                            type="text"
-                            id="tags"
-                            className="metadata-input"
-                            value={metadata.tags}
-                            onChange={handleTextInputChange}
-                        />
-                    </div>
-                    <div>
-                        <div className='metadata-label'>
-                            <label htmlFor="copyright">Copyright</label>
-                            <HelperTooltip>
-                                The copyright information. (e.g. © 2024 Author Name)
-                            </HelperTooltip>
-                        </div>
-                        <input
-                            type="text"
-                            id="copyright"
-                            className="metadata-input"
-                            value={metadata.copyright}
-                            onChange={handleTextInputChange}
-                        />
-                    </div>
-                    <div>
-                        <div className='metadata-label'>
-                            <label htmlFor="publisher">Publisher</label>
-                            <HelperTooltip>
-                                The publisher of the book.
-                            </HelperTooltip>
-                        </div>
-                        <input
-                            type="text"
-                            id="publisher"
-                            className="metadata-input"
-                            value={metadata.publisher}
-                            onChange={handleTextInputChange}
-                        />
-                    </div>
-                    <div>
-                        <div className='metadata-label'>
-                            <label htmlFor="published">Published</label>
-                            <HelperTooltip>
-                                The published date of the book. (e.g. 2024-01-01)
-                            </HelperTooltip>
-                        </div>
-                        <input
-                            type="text"
-                            id="published"
-                            className="metadata-input"
-                            value={metadata.published}
-                            onChange={handleTextInputChange}
-                        />
-                    </div>
-                    <div>
-                        <div className='metadata-label'>
-                            <label htmlFor="transcriptionSource">Transcription Source</label>
-                            <HelperTooltip>
-                                The source of the transcription.
-                            </HelperTooltip>
-                        </div>
-                        <input
-                            type="text"
-                            id="transcriptionSource"
-                            className="metadata-input"
-                            value={metadata.transcriptionSource}
-                            onChange={handleTextInputChange}
+                            type="checkbox"
+                            id="startReading"
+                            checked={metadata.startReading}
+                            onChange={handleCheckedChange}
                         />
                     </div>
                 </div>
 
-                <h2>
-                    Table of Contents Options
-                    <HelperTooltip>
-                        Optional fields for handing table of contents.
-                    </HelperTooltip>
-                </h2>
-
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="tocTitle">Table of Contents</label>
-                        <HelperTooltip>
-                            The title to override for the table of contents. Leave blank for: Table of Contents.
-                        </HelperTooltip>
-                    </div>
-                    <input
-                        type="text"
-                        id="tocTitle"
-                        className="metadata-input"
-                        value={metadata.tocTitle}
-                        onChange={handleTextInputChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="showContents">Show Table of Contents</label>
-                        <HelperTooltip>
-                            Show the table of contents in the book. Default: true. Uncheck to hide the table of contents.
-                        </HelperTooltip>
-                    </div>
-                    <input
-                        type="checkbox"
-                        id="showContents"
-                        checked={metadata.showContents}
-                        onChange={handleCheckedChange}
-                    />
-                </div>
-                <div>
-                    <div className='metadata-label'>
-                        <label htmlFor="startReading">Start Reading</label>
-                        <HelperTooltip>
-                            Start reading the book from after the table of contents. Default: true. Uncheck to start reading from cover page.
-                        </HelperTooltip>
-                    </div>
-                    <input
-                        type="checkbox"
-                        id="startReading"
-                        checked={metadata.startReading}
-                        onChange={handleCheckedChange}
-                    />
-                </div>
-            </div>
-
-            <h2>Contents</h2>
-            <div className="bulk-actions">
-                <div>
-                    <div className='bulk-action-category'>Selection</div>
-                    <button onClick={selectAllChapters}>
-                        Select all
-                        <HelperTooltip>
-                            Include all chapters in selection.
-                        </HelperTooltip>
-                    </button>
-                    <button onClick={selectNoneChapters}>
-                        Select none
-                        <HelperTooltip>
-                            Remove all chapters from selection.
-                        </HelperTooltip>
-                    </button>
-                </div>
-                <div>
-                    <div className='bulk-action-category'>Bulk title actions</div>
-                    <button onClick={removeChapterNumbers}>
-                        Remove chapter numbers
-                        <HelperTooltip>
-                            Remove any numbers at the start of the chapter titles.
-                        </HelperTooltip>
-                    </button>
-                    <button onClick={removeFirstChapterWord}>
-                        Remove first word
-                        <HelperTooltip>
-                            Remove the first word of each chapter title.
-                        </HelperTooltip>
-                    </button>
-                    <button onClick={restoreChapterTitle}>
-                        Restore original titles
-                        <HelperTooltip>
-                            Restore the original chapter titles based on the file names.
-                        </HelperTooltip>
-                    </button>
-                    <button onClick={setNumberedChapters}>
-                        Set numbered chapters
-                        <HelperTooltip>
-                            Set included chapter titles to the order they are listed. Avoid.
-                        </HelperTooltip>
-                    </button>
-                </div>
-                <div>
-                    <div className='bulk-action-category'>Chapter sorting</div>
-                    <button onClick={sortChapterByTitle}>
-                        Sort by title
-                        <HelperTooltip>
-                            Sort based on the title names of the chapters.
-                        </HelperTooltip>
-                    </button>
-                    <button onClick={reverseChapterOrder}>
-                        Reverse order
-                        <HelperTooltip>
-                            Reverse the order of the chapters.
-                        </HelperTooltip>
-                    </button>
-                    <button onClick={restoreChapterOrder}>
-                        Restore original order
-                        <HelperTooltip>
-                            Restore the original order of the chapters, sort based on the file names.
-                        </HelperTooltip>
-                    </button>
-                    {chaptersCollapsed ?
-                        <button onClick={() => setChaptersCollapsed(false)}>
-                            Show chapter details
+                <h2>Contents</h2>
+                <div className="bulk-actions">
+                    <div>
+                        <div className='bulk-action-category'>Selection</div>
+                        <button onClick={selectAllChapters}>
+                            Select all
                             <HelperTooltip>
-                                Show title, exclude from contents, and front matter settings for each chapter.
-                            </HelperTooltip>
-                        </button> :
-                        <button onClick={() => setChaptersCollapsed(true)}>
-                            Collapse chapter details
-                            <HelperTooltip>
-                                Hide title, exclude from contents, and front matter settings for each chapter.
+                                Include all chapters in selection.
                             </HelperTooltip>
                         </button>
-                    }
+                        <button onClick={selectNoneChapters}>
+                            Select none
+                            <HelperTooltip>
+                                Remove all chapters from selection.
+                            </HelperTooltip>
+                        </button>
+                    </div>
+                    <div>
+                        <div className='bulk-action-category'>Bulk title actions</div>
+                        <button onClick={removeChapterNumbers}>
+                            Remove chapter numbers
+                            <HelperTooltip>
+                                Remove any numbers at the start of the chapter titles.
+                            </HelperTooltip>
+                        </button>
+                        <button onClick={removeFirstChapterWord}>
+                            Remove first word
+                            <HelperTooltip>
+                                Remove the first word of each chapter title.
+                            </HelperTooltip>
+                        </button>
+                        <button onClick={restoreChapterTitle}>
+                            Restore original titles
+                            <HelperTooltip>
+                                Restore the original chapter titles based on the file names.
+                            </HelperTooltip>
+                        </button>
+                        <button onClick={setNumberedChapters}>
+                            Set numbered chapters
+                            <HelperTooltip>
+                                Set included chapter titles to the order they are listed. Avoid.
+                            </HelperTooltip>
+                        </button>
+                    </div>
+                    <div>
+                        <div className='bulk-action-category'>Chapter sorting</div>
+                        <button onClick={sortChapterByTitle}>
+                            Sort by title
+                            <HelperTooltip>
+                                Sort based on the title names of the chapters.
+                            </HelperTooltip>
+                        </button>
+                        <button onClick={reverseChapterOrder}>
+                            Reverse order
+                            <HelperTooltip>
+                                Reverse the order of the chapters.
+                            </HelperTooltip>
+                        </button>
+                        <button onClick={restoreChapterOrder}>
+                            Restore original order
+                            <HelperTooltip>
+                                Restore the original order of the chapters, sort based on the file names.
+                            </HelperTooltip>
+                        </button>
+                        {chaptersCollapsed ?
+                            <button onClick={() => setChaptersCollapsed(false)}>
+                                Show chapter details
+                                <HelperTooltip>
+                                    Show title, exclude from contents, and front matter settings for each chapter.
+                                </HelperTooltip>
+                            </button> :
+                            <button onClick={() => setChaptersCollapsed(true)}>
+                                Collapse chapter details
+                                <HelperTooltip>
+                                    Hide title, exclude from contents, and front matter settings for each chapter.
+                                </HelperTooltip>
+                            </button>
+                        }
+                    </div>
                 </div>
-            </div>
 
-            <DragDropContext onDragEnd={onDragEnd}>
-                <Droppable droppableId="chapters">
-                    {(provided) => (
-                        <div
-                            {...provided.droppableProps}
-                            ref={provided.innerRef}
-                            className="chapter-list"
-                        >
-                            {chapters.map(renderChapter)}
-                            {provided.placeholder}
-                        </div>
-                    )}
-                </Droppable>
-            </DragDropContext>
-        </div>
+                <DragDropContext onDragEnd={onDragEnd}>
+                    <Droppable droppableId="chapters">
+                        {(provided) => (
+                            <div
+                                {...provided.droppableProps}
+                                ref={provided.innerRef}
+                                className="chapter-list"
+                            >
+                                {chapters.map(renderChapter)}
+                                {provided.placeholder}
+                            </div>
+                        )}
+                    </Droppable>
+                </DragDropContext>
+            </div>
+        </>
     );
 };
 
