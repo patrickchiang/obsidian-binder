@@ -1,31 +1,30 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TAbstractFile, TFile, TFolder, WorkspaceLeaf, requestUrl } from 'obsidian';
-import { createRoot } from 'react-dom/client';
-import { DragDropContext, Droppable, Draggable, DropResult, DraggingStyle } from '@hello-pangea/dnd';
-import { icon } from '@fortawesome/fontawesome-svg-core'
-import { faCrown, faGlobe } from '@fortawesome/free-solid-svg-icons'
+import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faAmazon, faApple, faAudible, faFacebook, faPatreon, faTwitter } from '@fortawesome/free-brands-svg-icons';
-import yaml from 'js-yaml';
-import { v4 as uuid } from 'uuid';
-import numWords from 'num-words';
+import { faCrown, faGlobe } from '@fortawesome/free-solid-svg-icons';
+import { DragDropContext, Draggable, DraggingStyle, DropResult, Droppable } from '@hello-pangea/dnd';
+
 import ePub from 'epubjs';
 import fs from 'fs';
-import path from 'path';
-
+import yaml from 'js-yaml';
 import Epub, { Metadata, Resource, Section } from 'nodepub';
-
-import LanguageSelect from './LanguageSelect.js';
-import HelperTooltip from './HelperTooltip.js';
-import BinderPlugin from './main.js';
-import { BinderModalProps, BookChapter, BookData, BookMetadata, BookStoredChapter } from './BookStructure.js';
+import numWords from 'num-words';
+import { FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TAbstractFile, TFile, TFolder, WorkspaceLeaf, requestUrl } from 'obsidian';
+import path from 'path';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import ThemeSelect from './ThemeSelect.js';
+import { v4 as uuid } from 'uuid';
 
-import { baseTheme } from './themes/base.js';
-import { monoTheme } from './themes/mono.js';
+import { BinderModalProps, BookChapter, BookData, BookMetadata, BookStoredChapter } from './BookStructure.js';
+import { BookStyle, makeStylesheet } from './Bookstyle.js';
+import HelperTooltip from './HelperTooltip.js';
+import LanguageSelect from './LanguageSelect.js';
+import BinderPlugin from './main.js';
 import PreviewColorSelect from './PreviewColorSelect.js';
 import { allTheme } from './themes/all.js';
-import { BookStyle, makeStylesheet } from './Bookstyle.js';
+import { baseTheme } from './themes/base.js';
+import { monoTheme } from './themes/mono.js';
+import ThemeSelect from './ThemeSelect.js';
 
 interface EpubMetadata extends BookMetadata {
     cover: string;
@@ -1370,7 +1369,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
                         {metadata.cover && (
                             <div className="select-cover-text">
-                                file: {metadata.cover}
+                                file: {path.basename(metadata.cover)}
                                 <img src={
                                     `data:image/jpeg;base64,${fs.readFileSync(metadata.cover).toString('base64')}`
                                 } className="cover-preview"></img>

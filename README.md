@@ -2,23 +2,37 @@
 
 Obsidian Binder is an Obsidian plugin that allows users to effortlessly turn their files into a professional-quality, well-formatted, beautiful eBooks. This plugin also includes pre-made templates for front and back matter to streamline the export process.
 
-The format is ePub 3.0, targeted for export to the Amazon Kindle store.
+The primary format is ePub 3.0, targeted for export to the Amazon Kindle store.
+
+![Binder](img/binder.png)
 
 ## Usage
 
 ### Binding
 
+![Bind](img/bind.png)
+
 1. Right click on folder to bind, select Bind.
 2. Fill in the options (some metadata are required).
 3. Arrange and customize chapters.
-4. Press Bind button at the top.
-5. Select directory to export to.
+4. Press the Bind button at the top.
+5. Save.
 
 You can check your output file with Kindle Previewer 3 or Calibre.
+
+#### Rearrange Chapters:
+
+![Rearrange chapters](img/rearrange.png)
+
+#### Customization:
+
+![Customization](img/customization.png)
 
 ### Formatting Customization
 
 #### Templates
+
+![Templates](img/frontmatter.png)
 
 1. Right click on folder.
 2. Add front/back matter.
@@ -49,6 +63,8 @@ Store icons included:
 The "About the Author" template page includes examples.
 
 #### Customize Styling (Advanced CSS)
+
+![Customize styling](img/formatting.png)
 
 Customize styling of portions of your book by creating a code element (tab) with your desired CSS, like this:
 

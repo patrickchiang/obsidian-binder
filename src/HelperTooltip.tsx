@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import { CircleHelp } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { useEffect, useRef, useState } from 'react';
 
 interface HelperTooltipProps {

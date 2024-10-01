@@ -28,7 +28,7 @@ export default class BinderPlugin extends Plugin {
 					menu.addSeparator();
 					menu.addItem((item) => {
 						item
-							.setTitle("Bind to EPUB")
+							.setTitle("Binder")
 							.setIcon("book-open-text")
 							.onClick(async () => {
 								const { workspace } = this.app;
