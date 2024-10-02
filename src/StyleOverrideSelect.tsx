@@ -1,42 +1,80 @@
 import React from 'react';
+import { _all } from './themes/components/all.js';
+import { _dropcap1, _dropcap2, _dropcap3 } from './themes/components/dropcap.js';
+import { _hr1 } from './themes/components/hr.js';
+import { _indent1, _indent2 } from './themes/components/indent.js';
 
 interface StyleOverride {
     name: string;
     identifier: string;
+    style: string;
 }
 
 export const dropcaps: StyleOverride[] = [
     {
         name: 'None',
-        identifier: ''
+        identifier: '',
+        style: ''
     },
     {
-        name: 'Style 1',
-        identifier: '_dropcap1'
+        name: 'First Letter',
+        identifier: '_dropcap1',
+        style: _dropcap1
+    },
+    {
+        name: 'First Word',
+        identifier: '_dropcap2',
+        style: _dropcap2
+    },
+    {
+        name: 'First Line',
+        identifier: '_dropcap3',
+        style: _dropcap3
     }
 ];
 
 export const horizontalRules: StyleOverride[] = [
     {
-        name: 'None',
-        identifier: ''
+        name: 'Hide',
+        identifier: '',
+        style: ''
     },
     {
-        name: 'Style 1',
-        identifier: '_hr1'
+        name: 'Three Asterisks',
+        identifier: '_hr1',
+        style: _hr1
     }
 ];
 
 export const indents: StyleOverride[] = [
     {
-        name: 'None',
-        identifier: ''
+        name: 'No Indent',
+        identifier: '',
+        style: ''
     },
     {
-        name: 'Style 1',
-        identifier: '_indent1'
+        name: 'Indent After First',
+        identifier: '_indent1',
+        style: _indent1
+    },
+    {
+        name: 'Indent All',
+        identifier: '_indent2',
+        style: _indent2
     }
 ];
+
+const allStyleOverrides = [...dropcaps, ...horizontalRules, ...indents];
+
+export const calculateStyleOverrides = (components: string[]): string => {
+    return _all + components.reduce((acc, component) => {
+        const styleOverride = allStyleOverrides.find(styleOverride => styleOverride.identifier === component);
+        if (styleOverride) {
+            return acc + styleOverride.style;
+        }
+        return acc;
+    }, '');
+};
 
 interface StyleOverrideSelectProps {
     value: string[];

@@ -16,16 +16,11 @@ import { v4 as uuid } from 'uuid';
 
 import { BinderModalProps, BookChapter, BookData, BookMetadata, BookStoredChapter } from './BookStructure.js';
 import { BookStyle, makeStylesheet } from './Bookstyle.js';
-import StyleOverrideSelect, { dropcaps, horizontalRules, indents } from './StyleOverrideSelect.js';
 import HelperTooltip from './HelperTooltip.js';
 import LanguageSelect from './LanguageSelect.js';
 import PreviewColorSelect from './PreviewColorSelect.js';
+import StyleOverrideSelect, { calculateStyleOverrides, dropcaps, horizontalRules, indents } from './StyleOverrideSelect.js';
 import ThemeSelect, { getStyleForTheme } from './ThemeSelect.js';
-
-import { _all } from './themes/_all.js';
-import { _dropcap1 } from './themes/_dropcap.js';
-import { _hr1 } from './themes/_hr.js';
-import { _indent1 } from './themes/_indent.js';
 
 import BinderPlugin from './main.js';
 
@@ -236,7 +231,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                 tocTitle: '',
                 startReading: true,
                 theme: 'apex',
-                components: []
+                components: ['_dropcap1', '_hr1', '_indent1']
             },
             chapters: files.map(file => ({
                 title: file.basename.replace(/^\d*/, '').trim(),
@@ -469,22 +464,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
     const [currentThemeStyle, setCurrentThemeStyle] = useState(getStyleForTheme(metadata.theme));
 
     const calculateFinalThemeStyle = () => {
-        const comps = metadata.components.reduce((acc, component) => {
-            switch (component) {
-                case '_dropcap1':
-                    acc += _dropcap1;
-                    break;
-                case '_hr1':
-                    acc += _hr1;
-                    break;
-                case '_indent1':
-                    acc += _indent1;
-                    break;
-                default:
-            }
-            return acc + '\n';
-        }, '');
-        return currentThemeStyle + comps + _all;
+        const comps = calculateStyleOverrides(metadata.components);
+        return currentThemeStyle + comps;
     }
 
     const [finalThemeStyle, setFinalThemeStyle] = useState<string>(calculateFinalThemeStyle());
@@ -548,8 +529,9 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         previewPub();
     }, [finalThemeStyle]);
 
-    const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
+    const [styleOverrideCollapsed, setStyleOverrideCollapsed] = useState(false);
     const [optionalMetadataCollapsed, setOptionalMetadataCollapsed] = useState(true);
+    const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
 
     const findRelativeParentOffsetTop = (element: HTMLElement | null) => {
         let currentElement = element;
@@ -1312,37 +1294,45 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         <ThemeSelect value={metadata.theme} onChange={handleThemeChange} />
                     </div>
 
-                    <div>
-                        <div className='metadata-label'>
-                            <label>Dropcap Styling</label>
-                            <HelperTooltip>
-                                Dropcap styling for the first words/letters/line of a chapter.
-                            </HelperTooltip>
+                    <h3>
+                        <span onClick={() => setStyleOverrideCollapsed(!styleOverrideCollapsed)} className="collapse-metadata-header">
+                            <span className="collapse-metadata-icon">{styleOverrideCollapsed ? '▶' : '▼'}</span> Style Overrides
+                        </span>
+                    </h3>
+
+                    <div className={styleOverrideCollapsed ? 'metadata-section-collapsed' : ''}>
+                        <div>
+                            <div className='metadata-label'>
+                                <label>Dropcaps</label>
+                                <HelperTooltip>
+                                    Dropcap styling for the first words/letters/line of a chapter.
+                                </HelperTooltip>
+                            </div>
+
+                            <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={dropcaps} />
                         </div>
 
-                        <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={dropcaps} />
-                    </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label>Horizontal Rule</label>
+                                <HelperTooltip>
+                                    Horizontal rule styling for scene breaks.
+                                </HelperTooltip>
+                            </div>
 
-                    <div>
-                        <div className='metadata-label'>
-                            <label>Horizontal Rule Styling</label>
-                            <HelperTooltip>
-                                Horizontal rule styling for scene breaks.
-                            </HelperTooltip>
+                            <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={horizontalRules} />
                         </div>
 
-                        <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={horizontalRules} />
-                    </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label>Indents</label>
+                                <HelperTooltip>
+                                    Indent styling for paragraphs.
+                                </HelperTooltip>
+                            </div>
 
-                    <div>
-                        <div className='metadata-label'>
-                            <label>Indent Styling</label>
-                            <HelperTooltip>
-                                Indent styling for paragraphs.
-                            </HelperTooltip>
+                            <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={indents} />
                         </div>
-
-                        <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={indents} />
                     </div>
                 </div>
 
