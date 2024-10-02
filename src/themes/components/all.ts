@@ -64,10 +64,10 @@ p {
 }
 
 .half-title-page h1 {
-    margin-top: 5em;
+    margin-top: 4em;
     text-align: center;
     font-weight: bold;
-    font-size: 200%;
+    font-size: 250%;
 }
 
 .title-page h1 {

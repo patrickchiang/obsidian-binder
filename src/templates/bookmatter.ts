@@ -100,19 +100,49 @@ ISBN 2:
 Disclaimer: This is a work of fiction. Names, characters, places and incidents either are products of the author’s imagination or are used fictitiously. Any resemblance to actual events or locales or persons, living or dead, is entirely coincidental.
 Publisher 1: Published by
 Publisher 2:
----`;
+---
+
+(Everything is ignored by Binder below this point.)
+
+Instructions:
+
+- Book Name: The title of the book.
+- Year: The year of publication.
+- Copyright Holder: The name of the copyright holder, usually the author.
+- Collaborator #: The role and name of a collaborator. For example, "Cover Art by John Doe." You can add more collaborators by increasing the number.
+- ISBN #: ISBN number. For example, "ISBN 123-4-5678-9012-3 (ebook)". You can add more ISBNs by increasing the number.
+- Disclaimer: Disclaimer text.
+- Publisher #: Publisher name. For example, "Published by My Publishing Company." You can add more publishers by increasing the number.
+`;
 
 const dedication = `---
 Title: Dedication
 Text: This book is dedicated to...
----`;
+---
+
+(Everything is ignored by Binder below this point.)
+
+Instructions:
+
+- Title: The title of the dedication.
+- Text: The text of the dedication.
+`;
 
 const epigraph = `---
 Quote 1: It was the best of times, it was the worst of times.
 Quote 2:
 Author: Charles Dickens
 Source: A Tale of Two Cities
----`;
+---
+
+(Everything is ignored by Binder below this point.)
+
+Instructions:
+
+- Quote #: A quote in a paragraph. You can add more paragraphs by increasing the number.
+- Author: The author of the quote. Bolded.
+- Source: (Optional) The source of the quote. Italics. Can also be location...etc.
+`;
 
 const blurbs = `---
 Title: Reviews
@@ -122,11 +152,27 @@ Blurb 2: A must-read for fans of the genre.
 Source 2: My Mom
 Blurb 3:
 Source 3:
----`;
+---
+
+(Everything is ignored by Binder below this point.)
+
+Instructions:
+
+- Title: The title of the blurb section.
+- Blurb #: A blurb in a paragraph. You can add more blurbs by increasing the number.
+- Source #: The source of the blurb. Bolded. You should have the same number of sources as blurbs.
+`;
 
 const halfTitle = `---
 Title: Book Title
----`;
+---
+
+(Everything is ignored by Binder below this point.)
+
+Instructions:
+
+- Title: The title of the book.
+`;
 
 const titlePage = `---
 Title: Book Title
@@ -141,7 +187,20 @@ Collaborator Role 3:
 Collaborator Name 3:
 Publisher: Publisher Name
 Publisher Link: https://www.publisher.com
----`;
+---
+
+(Everything is ignored by Binder below this point.)
+
+Instructions:
+
+- Title: The title of the book.
+- Subtitle: The subtitle of the book.
+- Author Name #: The name of the author. You can add more authors by increasing the number. They will be displayed in order side-by-side.
+- Collaborator Role #: The role of a collaborator. For example, "Cover Art". You can add more roles by increasing the number. Bolded.
+- Collaborator Name #: The name of a collaborator. For example, "John Doe". You can add more names by increasing the number. You should have the same number of roles and names.
+- Publisher: The name of the publisher.
+- Publisher Link: (Optional) A link to the publisher's website.
+`;
 
 export const frontmatters: Matter[] = [
     {
@@ -182,14 +241,23 @@ About Author 1: Author Name is the author of Book Name. Introduce other books/se
 About Author 2: Something personal.
 About Author 3:
 Link To Amazon: https://www.amazon.com/author/authorname
-Link To Apple: https://books.apple.com/author/authorname
-Link To Audible: https://www.audible.com/author/authorname
-Link To Facebook: https://www.facebook.com/authorname
-Link To Patreon: https://www.patreon.com/authorname
-Link To Royal Road: https://www.royalroad.com/author/authorname
+Link To Apple:
+Link To Audible:
+Link To Facebook:
+Link To Patreon:
+Link To Royal Road:
 Link To Twitter:
 Link To Website:
----`;
+---
+
+(Everything is ignored by Binder below this point.)
+
+Instructions:
+
+- Title: The title of the about the author section.
+- About Author #: A paragraph about the author. You can add more paragraphs by increasing the number.
+- Link To X: (Optional) A link to the author's social media page.
+`;
 
 const alsoBy = `---
 Title: Also By Author Name
@@ -202,7 +270,17 @@ Description 2: Description of Book 2
 Book 3:
 Link 3:
 Description 3:
----`;
+---
+
+(Everything is ignored by Binder below this point.)
+
+Instructions:
+
+- Title: The title of the also by section.
+- Book #: The title of a book. You can add more books by increasing the number.
+- Link #: A link to the book. You can add more links by increasing the number.
+- Description #: A description of the book. You can add more descriptions by increasing the number. You should have the same number of books and links and descriptions.
+`;
 
 const previewMore = `---
 Title: Preview More
@@ -215,7 +293,7 @@ Remove this line and put the rest of the preview in the markdown:
 
 # Chapter 1
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 `;
 
 export const backmatters: Matter[] = [

@@ -57,9 +57,10 @@ export default class BinderPlugin extends Plugin {
 
 						if (this.app.vault.getFileByPath(filePath)) {
 							new Notice(`File ${fileName} already exists in ${file.path}.`);
+						} else {
+							await this.app.vault.create(filePath, yaml);
 						}
 
-						await this.app.vault.create(filePath, yaml);
 						const newFile = this.app.vault.getFileByPath(filePath);
 						if (newFile) {
 							this.app.workspace.getLeaf("tab").openFile(newFile);
