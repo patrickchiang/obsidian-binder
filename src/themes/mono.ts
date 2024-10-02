@@ -1,14 +1,6 @@
 export const monoTheme = `
-/* Base Styles */
 body {
     font-family: monospace;
-    word-wrap: break-word;
-}
-
-p {
-    font-size: 1em;
-    text-align: justify;
-    text-indent: 0;
 }
 
 .chapter-number{
@@ -44,17 +36,5 @@ p {
     margin-bottom: 1rem;
     margin-left: 20%;
     margin-right: 20%;
-}
-
-.horizontal-rule {
-    text-align: center;
-    font-size: 1rem;
-    margin-top: 0.8rem;
-    margin-bottom: 0;
-    font-weight: bold;
-}
-
-.horizontal-rule::before {
-    content: "+ + + + +";
 }
 `;

@@ -64,6 +64,10 @@ export default class BinderPlugin extends Plugin {
 							{
 								title: "Copyright Page",
 								template: frontMatter.createCopyright
+							},
+							{
+								title: "Dedication Page",
+								template: frontMatter.createDedication
 							}
 						];
 

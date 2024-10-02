@@ -2,6 +2,7 @@ import { App, Notice, TFolder } from "obsidian";
 
 import * as copyright from "./templates/copyright.js";
 import * as findme from "./templates/findme.js";
+import * as dedication from "./templates/dedication.js";
 import * as otherbooks from "./templates/otherbooks.js";
 import * as previewbook from "./templates/previewbook.js";
 import * as aboutauthor from "./templates/aboutauthor.js";
@@ -27,6 +28,11 @@ export const frontMatter = {
     createFindMe: async (app: App, folder: TFolder) => {
         const fileName = "000 Find Me Online.md";
         const markdown = findme.markdown;
+        openFile(app, folder, fileName, markdown);
+    },
+    createDedication: async (app: App, folder: TFolder) => {
+        const fileName = "000 Dedication.md";
+        const markdown = dedication.markdown;
         openFile(app, folder, fileName, markdown);
     },
     createOtherBooks: async (app: App, folder: TFolder) => {

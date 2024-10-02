@@ -1,33 +1,64 @@
 import React from 'react';
+import { apexTheme } from './themes/apex.js';
+import { monoTheme } from './themes/mono.js';
+import { timberTheme } from './themes/timber.js';
 
 interface Theme {
     name: string;
     identifier: string;
+    style: string;
+    components: string[];
 }
+
+const themes: Theme[] = [
+    {
+        name: 'Apex',
+        identifier: 'apex',
+        style: apexTheme,
+        components: ['_dropcap1', '_hr1', '_indent1']
+    },
+    {
+        name: 'Mono',
+        identifier: 'mono',
+        style: monoTheme,
+        components: ['_hr1']
+    },
+    {
+        name: 'Timber',
+        identifier: 'timber',
+        style: timberTheme,
+        components: ['_dropcap1', '_hr1', '_indent1']
+    },
+];
+
+export const getStyleForTheme = (theme: string) => {
+    const selectedTheme = themes.find(t => t.identifier === theme);
+    if (selectedTheme) {
+        return selectedTheme.style;
+    }
+    return '';
+};
+
+export const populateComponentsForTheme = (theme: string) => {
+    const selectedTheme = themes.find(t => t.identifier === theme);
+    if (selectedTheme) {
+        return selectedTheme.components;
+    }
+    return [];
+};
 
 interface ThemeSelectProps {
     value: string;
-    onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+    onChange: (event: React.ChangeEvent<HTMLSelectElement>, style: string, components: string[]) => void;
 }
 
 const ThemeSelect: React.FC<ThemeSelectProps> = ({ value, onChange }) => {
-    const themes: Theme[] = [
-        {
-            name: 'Base',
-            identifier: 'base'
-        },
-        {
-            name: 'Mono',
-            identifier: 'mono'
-        }
-    ];
-
     return (
         <select
             id="theme"
             className="metadata-input"
             value={value}
-            onChange={onChange}
+            onChange={(event) => onChange(event, getStyleForTheme(event.target.value), populateComponentsForTheme(event.target.value))}
         >
             {themes.map(theme => (
                 <option key={theme.identifier} value={theme.identifier}>

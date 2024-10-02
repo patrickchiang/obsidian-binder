@@ -2,7 +2,6 @@ import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faAmazon, faApple, faAudible, faFacebook, faPatreon, faTwitter } from '@fortawesome/free-brands-svg-icons';
 import { faCrown, faGlobe } from '@fortawesome/free-solid-svg-icons';
 import { DragDropContext, Draggable, DraggingStyle, DropResult, Droppable } from '@hello-pangea/dnd';
-
 import ePub from 'epubjs';
 import fs from 'fs';
 import yaml from 'js-yaml';
@@ -17,14 +16,18 @@ import { v4 as uuid } from 'uuid';
 
 import { BinderModalProps, BookChapter, BookData, BookMetadata, BookStoredChapter } from './BookStructure.js';
 import { BookStyle, makeStylesheet } from './Bookstyle.js';
+import StyleOverrideSelect, { dropcaps, horizontalRules, indents } from './StyleOverrideSelect.js';
 import HelperTooltip from './HelperTooltip.js';
 import LanguageSelect from './LanguageSelect.js';
-import BinderPlugin from './main.js';
 import PreviewColorSelect from './PreviewColorSelect.js';
-import { allTheme } from './themes/all.js';
-import { baseTheme } from './themes/base.js';
-import { monoTheme } from './themes/mono.js';
-import ThemeSelect from './ThemeSelect.js';
+import ThemeSelect, { getStyleForTheme } from './ThemeSelect.js';
+
+import { _all } from './themes/_all.js';
+import { _dropcap1 } from './themes/_dropcap.js';
+import { _hr1 } from './themes/_hr.js';
+import { _indent1 } from './themes/_indent.js';
+
+import BinderPlugin from './main.js';
 
 interface EpubMetadata extends BookMetadata {
     cover: string;
@@ -47,6 +50,7 @@ interface EpubMetadata extends BookMetadata {
     tocTitle: string;
     startReading: boolean;
     theme: string;
+    components: string[];
 }
 
 export const defaultStyle: BookStyle = {
@@ -198,7 +202,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
     const hardCodedFrontMatter = [
         "000 Copyright",
-        "000 Find Me Online"
+        "000 Find Me Online",
+        "000 Dedication",
     ];
 
     const hardCodedBackMatter = [
@@ -230,7 +235,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                 showContents: true,
                 tocTitle: '',
                 startReading: true,
-                theme: 'base'
+                theme: 'apex',
+                components: []
             },
             chapters: files.map(file => ({
                 title: file.basename.replace(/^\d*/, '').trim(),
@@ -296,7 +302,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
     const useMetadata = () => {
         const [metadata, setMetadata] = useState<EpubMetadata>(loadedData.metadata);
 
-        const updateMetadata = useCallback((field: keyof EpubMetadata, value: string | number | boolean) => {
+        const updateMetadata = useCallback((field: keyof EpubMetadata, value: string | number | boolean | string[]) => {
             setMetadata(prev => {
                 const newMetadata = ({ ...prev, [field]: value });
                 saveToYaml(newMetadata, chapters);
@@ -460,21 +466,36 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         }
     }, [updateMetadata]);
 
-    const themeToThemeStyle = (theme: string) => {
-        let themeStyle = '';
-        switch (theme) {
-            case 'base':
-                themeStyle = baseTheme;
-                break;
-            case 'mono':
-                themeStyle = monoTheme;
-                break;
-            default:
-        }
-        return themeStyle;
-    };
+    const [currentThemeStyle, setCurrentThemeStyle] = useState(getStyleForTheme(metadata.theme));
 
-    const [currentThemeStyle, setCurrentThemeStyle] = useState(themeToThemeStyle(metadata.theme));
+    const calculateFinalThemeStyle = () => {
+        const comps = metadata.components.reduce((acc, component) => {
+            switch (component) {
+                case '_dropcap1':
+                    acc += _dropcap1;
+                    break;
+                case '_hr1':
+                    acc += _hr1;
+                    break;
+                case '_indent1':
+                    acc += _indent1;
+                    break;
+                default:
+            }
+            return acc + '\n';
+        }, '');
+        return currentThemeStyle + comps + _all;
+    }
+
+    const [finalThemeStyle, setFinalThemeStyle] = useState<string>(calculateFinalThemeStyle());
+
+    useEffect(() => {
+        setFinalThemeStyle(calculateFinalThemeStyle());
+    }, [setFinalThemeStyle, currentThemeStyle, metadata.components]);
+
+    const handleComponentsChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>, newComponents: string[]) => {
+        updateMetadata('components', newComponents);
+    }, [updateMetadata]);
 
     const [previewColorScheme, setPreviewColorScheme] = useState("sepia");
 
@@ -483,9 +504,12 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
     const [rendition, setRendition] = useState<ePub.Rendition | null>(null);
     const renditionRef = useRef(rendition);
 
-    const handleThemeChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleThemeChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>, style: string, newComponents: string[]) => {
         const { value } = event.target;
-        setCurrentThemeStyle(themeToThemeStyle(value));
+
+        setCurrentThemeStyle(style);
+
+        updateMetadata('components', newComponents);
         updateMetadata('theme', value);
     }, [updateMetadata]);
 
@@ -522,7 +546,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
     useEffect(() => {
         previewPub();
-    }, [currentThemeStyle]);
+    }, [finalThemeStyle]);
 
     const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
     const [optionalMetadataCollapsed, setOptionalMetadataCollapsed] = useState(true);
@@ -685,23 +709,6 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         section.addClass('binder-chapter');
         document.body.appendChild(section);
 
-        const frontMatter = [
-            "000 Copyright",
-            "000 Find Me Online"
-        ];
-        if (frontMatter.includes(chapterName)) {
-            section.addClass('front-matter-page');
-        }
-
-        const backMatter = [
-            "999 Other Books",
-            "999 Preview Book",
-            "999 About the Author"
-        ];
-        if (backMatter.includes(chapterName)) {
-            section.addClass('back-matter-page');
-        }
-
         if (!chapter.isFrontMatter && !chapter.isBackMatter) {
             const chapterHeader = (
                 <>
@@ -744,6 +751,13 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             const replacementParagraph = document.createElement('p');
             replacementParagraph.innerHTML = replacementText;
             replacementParagraph.addClass('first-paragraph');
+
+            if (chapter.isFrontMatter) {
+                replacementParagraph.addClass('front-matter');
+            }
+            if (chapter.isBackMatter) {
+                replacementParagraph.addClass('back-matter');
+            }
 
             firstParagraph.replaceWith(replacementParagraph);
         }
@@ -860,7 +874,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         fs.writeFileSync(tempPath, htmlContent, { encoding: 'utf8' });
         win.loadURL(tempPath);
 
-        const styleString = makeStylesheet(defaultStyle) + currentThemeStyle + allTheme;
+        const styleString = makeStylesheet(defaultStyle) + finalThemeStyle;
 
         const renderBook = `
             async function renderBook() {
@@ -1035,7 +1049,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         }
 
         const epub = new Epub({
-            css: currentThemeStyle + allTheme,
+            css: finalThemeStyle,
             metadata: epubMetadata,
             options: {
                 startReading: metadata.startReading,
@@ -1134,7 +1148,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         }
 
         const epub = new Epub({
-            css: currentThemeStyle,
+            css: finalThemeStyle,
             metadata: epubMetadata,
             options: {
                 startReading: metadata.startReading,
@@ -1158,7 +1172,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             });
 
             const injectStyle = document.createElement('style');
-            injectStyle.textContent = currentThemeStyle;
+            injectStyle.textContent = finalThemeStyle;
             injectStyle.textContent += `
                 #toc ol {
                     list-style-type: none;
@@ -1170,7 +1184,6 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     font-family: "Georgia", "Palatino Linotype", sans-serif;
                 }
             `;
-            injectStyle.textContent += allTheme;
 
             doc.head.appendChild(injectStyle);
         });
@@ -1290,13 +1303,46 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
                     <div>
                         <div className='metadata-label'>
-                            <label htmlFor="theme-choose">Premade Theme</label>
+                            <label>Premade Theme</label>
                             <HelperTooltip>
                                 The premade theme to apply to the book.
                             </HelperTooltip>
                         </div>
 
                         <ThemeSelect value={metadata.theme} onChange={handleThemeChange} />
+                    </div>
+
+                    <div>
+                        <div className='metadata-label'>
+                            <label>Dropcap Styling</label>
+                            <HelperTooltip>
+                                Dropcap styling for the first words/letters/line of a chapter.
+                            </HelperTooltip>
+                        </div>
+
+                        <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={dropcaps} />
+                    </div>
+
+                    <div>
+                        <div className='metadata-label'>
+                            <label>Horizontal Rule Styling</label>
+                            <HelperTooltip>
+                                Horizontal rule styling for scene breaks.
+                            </HelperTooltip>
+                        </div>
+
+                        <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={horizontalRules} />
+                    </div>
+
+                    <div>
+                        <div className='metadata-label'>
+                            <label>Indent Styling</label>
+                            <HelperTooltip>
+                                Indent styling for paragraphs.
+                            </HelperTooltip>
+                        </div>
+
+                        <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={indents} />
                     </div>
                 </div>
 
