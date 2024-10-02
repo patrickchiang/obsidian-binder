@@ -86,3 +86,13 @@ div(class='also-by-page sp')
             a(href=data["Links"][i] class='sp') #{val}
         p(class='sp book-description') #{data["Descriptions"][i]}
 `;
+
+export const previewMoreTemplate = `
+div(class='preview-more-page sp')
+    h1(class='sp') #{data["Title"]}
+    p(class='sp book-title')
+        a(href=data["Link"] class='sp') #{data["Book"]}
+    p(class='sp book-description') #{data["Description"]}
+    div(class='sp')
+        | !{bodyText}
+`;

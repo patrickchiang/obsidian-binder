@@ -704,9 +704,19 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         for (const bookmatter of bookmatters) {
             if (chapterName === `000 ${bookmatter.title}`) {
                 const page = convertToPage(markdown);
+
+                const bodyResponse = page["Body"];
+                let tempPortion = "";
+                if (bodyResponse && typeof bodyResponse === 'string') {
+                    const tempDom = document.createElement('div');
+                    await MarkdownRenderer.render(app, bodyResponse, tempDom, filePath, plugin);
+                    tempPortion = tempDom.innerHTML;
+                }
+
                 const sectionString = bookmatter.template({
                     data: page,
-                    storeLinkers: storeLinkers
+                    storeLinkers: storeLinkers,
+                    bodyText: tempPortion
                 });
 
                 const wrapper = document.createElement('section');

@@ -8,6 +8,7 @@ import {
     dedicationTemplate,
     epigraphTemplate,
     halfTitleTemplate,
+    previewMoreTemplate,
     titlePageTemplate
 } from "./templates.js";
 
@@ -42,17 +43,26 @@ const extractBookmatter = (mdContent: string) => {
         }
     }
 
+    let bookmatter = null;
+    let body = null;
+
     if (startIndex !== -1 && endIndex !== -1 && startIndex !== endIndex) {
         const bookmatterLines = lines.slice(startIndex + 1, endIndex);
-        return bookmatterLines.join('\n').trim();
+        bookmatter = bookmatterLines.join('\n').trim();
+
+        const bodyLines = lines.slice(endIndex + 1);
+        body = bodyLines.join('\n').trim();
     }
 
-    return "";
+    return {
+        bookmatter: bookmatter || '',
+        body: body || ''
+    };
 }
 
 export const convertToPage = (input: string): Page => {
     const firstStage = extractBookmatter(input);
-    const secondStage = jsYaml.load(firstStage) as Record<string, string>;
+    const secondStage = jsYaml.load(firstStage.bookmatter) as Record<string, string>;
     const response: Page = {};
     for (const [key, value] of Object.entries(secondStage)) {
         const splitKey = key.split(" ");
@@ -72,6 +82,9 @@ export const convertToPage = (input: string): Page => {
             response[key] = value || "";
         }
     }
+
+    response["Body"] = firstStage.body;
+
     return response;
 };
 
@@ -191,6 +204,20 @@ Link 3:
 Description 3:
 ---`;
 
+const previewMore = `---
+Title: Preview More
+Book: Book Title 1
+Link: https://www.amazon.com/myotherbook1
+Description: Description of Book 1
+---
+
+Remove this line and put the rest of the preview in the markdown:
+
+# Chapter 1
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+`;
+
 export const backmatters: Matter[] = [
     {
         title: "About the Author",
@@ -201,5 +228,10 @@ export const backmatters: Matter[] = [
         title: "Also By Author",
         yaml: alsoBy,
         template: pug.compile(alsoByTemplate, options)
+    },
+    {
+        title: "Preview More",
+        yaml: previewMore,
+        template: pug.compile(previewMoreTemplate, options)
     }
 ];

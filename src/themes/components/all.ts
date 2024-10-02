@@ -7,6 +7,9 @@ p {
     font-size: 1em;
     text-align: justify;
     text-indent: 0;
+    margin-top: 0;
+    margin-bottom: 0.5em;
+    line-height: 1.5em;
 }
 
 .copyright-page p {
