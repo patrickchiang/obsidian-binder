@@ -18,7 +18,7 @@ p.first-paragraph:not(.front-matter):not(.back-matter) .first-word {
 
 export const _dropcap3 = `
 p.first-paragraph:not(.front-matter):not(.back-matter)::first-line {
-    font-size: 120%;
+    font-size: 105%;
     text-transform: uppercase;
 }
 `;

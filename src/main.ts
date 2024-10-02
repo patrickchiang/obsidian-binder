@@ -1,6 +1,6 @@
-import { App, Plugin, PluginSettingTab, Setting, TFolder, WorkspaceLeaf } from 'obsidian';
-import { frontMatter } from './FrontMatter.js';
+import { App, Menu, Notice, Plugin, PluginSettingTab, Setting, TFolder, WorkspaceLeaf } from 'obsidian';
 import { BinderIntegrationView } from './BinderView.js';
+import { backmatters, frontmatters, Matter } from './templates/bookmatter.js';
 
 interface BinderPluginSettings {
 	persistSettings: boolean;
@@ -26,28 +26,7 @@ export default class BinderPlugin extends Plugin {
 			this.app.workspace.on("file-menu", (menu, file, view) => {
 				if (file instanceof TFolder) {
 					menu.addSeparator();
-					menu.addItem((item) => {
-						item
-							.setTitle("Binder")
-							.setIcon("book-open-text")
-							.onClick(async () => {
-								const { workspace } = this.app;
-								const leaves = workspace.getLeavesOfType("binder-view");
-
-								let leaf: WorkspaceLeaf | null = null;
-								if (leaves.length > 0) {
-									leaf = leaves[0];
-								} else {
-									leaf = workspace.getLeaf(true);
-									await leaf.setViewState({ type: "binder-view", active: true });
-								}
-
-								if (leaf.view instanceof BinderIntegrationView) {
-									workspace.revealLeaf(leaf);
-									leaf.view.startRender(file);
-								}
-							});
-					});
+					this.createBindIcon(menu, file);
 
 					menu.addItem((item) => {
 						item
@@ -56,64 +35,63 @@ export default class BinderPlugin extends Plugin {
 
 						const subMenu = item.setSubmenu();
 
-						const frontMatterTemplates = [
-							{
-								title: "Find Me Online Page",
-								template: frontMatter.createFindMe
-							},
-							{
-								title: "Copyright Page",
-								template: frontMatter.createCopyright
-							},
-							{
-								title: "Dedication Page",
-								template: frontMatter.createDedication
-							}
-						];
-
-						for (const { title, template } of frontMatterTemplates) {
-							subMenu.addItem((subItem) => {
-								subItem
-									.setTitle(title)
-									.setIcon("plus")
-									.onClick(async () => {
-										await template(this.app, file as TFolder);
-									});
-							});
-						}
-
+						this.createMatterIcon(subMenu, file, frontmatters);
 						subMenu.addSeparator();
-
-						const backMatterTemplates = [
-							{
-								title: "Other Books Page",
-								template: frontMatter.createOtherBooks
-							},
-							{
-								title: "Preview Book Page",
-								template: frontMatter.createPreviewBook
-							},
-							{
-								title: "About the Author Page",
-								template: frontMatter.createAboutAuthor
-							}
-						];
-
-						for (const { title, template } of backMatterTemplates) {
-							subMenu.addItem((subItem) => {
-								subItem
-									.setTitle(title)
-									.setIcon("plus")
-									.onClick(async () => {
-										await template(this.app, file as TFolder);
-									});
-							});
-						}
+						this.createMatterIcon(subMenu, file, backmatters);
 					});
 					menu.addSeparator();
 				}
 			})
 		);
+	}
+
+	createMatterIcon(subMenu: Menu, file: TFolder, matters: Matter[]) {
+		for (const { title, yaml } of matters) {
+			subMenu.addItem((subItem) => {
+				subItem
+					.setTitle(title)
+					.setIcon("file")
+					.onClick(async () => {
+						const fileName = `000 ${title}.md`;
+						const filePath = file.path + "/" + fileName;
+
+						if (this.app.vault.getFileByPath(filePath)) {
+							new Notice(`File ${fileName} already exists in ${file.path}.`);
+						}
+
+						await this.app.vault.create(filePath, yaml);
+						const newFile = this.app.vault.getFileByPath(filePath);
+						if (newFile) {
+							this.app.workspace.getLeaf("tab").openFile(newFile);
+						}
+					});
+			});
+		}
+	}
+
+	createBindIcon(menu: Menu, file: TFolder) {
+		menu.addItem((item) => {
+			item
+				.setTitle("Binder")
+				.setIcon("book-open-text")
+				.onClick(async () => {
+					const { workspace } = this.app;
+					const leaves = workspace.getLeavesOfType("binder-view");
+
+					let leaf: WorkspaceLeaf | null = null;
+					if (leaves.length > 0) {
+						leaf = leaves[0];
+					} else {
+						leaf = workspace.getLeaf(true);
+						await leaf.setViewState({ type: "binder-view", active: true });
+					}
+
+					if (leaf.view instanceof BinderIntegrationView) {
+						workspace.revealLeaf(leaf);
+						leaf.view.startRender(file);
+					}
+				});
+		});
 	}
 
 	naturalSort(a: string, b: string): number {

@@ -191,6 +191,7 @@ h1 {
 .metadata-input {
     margin-left: 1em;
     margin-bottom: 1em;
+    min-width: 12em;
 }
 
 .metadata-label {
@@ -198,7 +199,7 @@ h1 {
     display: inline-block;
 }
 
-.metadata-section input[type='checkbox'] {
+.appearance-section input[type='checkbox'] {
     transform: scale(1.2);
     margin-left: 1em;
     margin-top: 1em;

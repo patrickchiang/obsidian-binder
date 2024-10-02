@@ -23,6 +23,7 @@ import StyleOverrideSelect, { calculateStyleOverrides, dropcaps, horizontalRules
 import ThemeSelect, { getStyleForTheme } from './ThemeSelect.js';
 
 import BinderPlugin from './main.js';
+import { backmatters, convertToPage, frontmatters } from './templates/bookmatter.js';
 
 interface EpubMetadata extends BookMetadata {
     cover: string;
@@ -530,6 +531,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
     }, [finalThemeStyle]);
 
     const [styleOverrideCollapsed, setStyleOverrideCollapsed] = useState(false);
+    const [tocOptionsCollapsed, setTocOptionsCollapsed] = useState(false);
     const [optionalMetadataCollapsed, setOptionalMetadataCollapsed] = useState(true);
     const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
 
@@ -687,6 +689,36 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         const chapterName = chapter.title;
         const filePath = chapter.file.path;
 
+        const storeLinkers = {
+            "Amazon": icon(faAmazon).html[0],
+            "Apple": icon(faApple).html[0],
+            "Audible": icon(faAudible).html[0],
+            "Facebook": icon(faFacebook).html[0],
+            "Patreon": icon(faPatreon).html[0],
+            "Royal Road": icon(faCrown).html[0],
+            "Twitter": icon(faTwitter).html[0],
+            "Website": icon(faGlobe).html[0]
+        };
+
+        const bookmatters = frontmatters.concat(backmatters);
+        for (const bookmatter of bookmatters) {
+            if (chapterName === `000 ${bookmatter.title}`) {
+                const page = convertToPage(markdown);
+                const sectionString = bookmatter.template({
+                    data: page,
+                    storeLinkers: storeLinkers
+                });
+
+                const wrapper = document.createElement('section');
+                wrapper.innerHTML = sectionString;
+                return {
+                    section: wrapper,
+                    images: [],
+                    title: bookmatter.title
+                };
+            }
+        }
+
         const section = document.createElement('section');
         section.addClass('binder-chapter');
         document.body.appendChild(section);
@@ -751,55 +783,6 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                 <div className="horizontal-rule"></div>
             );
             hr.outerHTML = renderToStaticMarkup(asterisk);
-        });
-
-        // replace store links
-        const storeLinkers = {
-            "AMAZON": icon(faAmazon).html[0],
-            "APPLE": icon(faApple).html[0],
-            "AUDIBLE": icon(faAudible).html[0],
-            "FACEBOOK": icon(faFacebook).html[0],
-            "PATREON": icon(faPatreon).html[0],
-            "ROYALROAD": icon(faCrown).html[0],
-            "TWITTER": icon(faTwitter).html[0],
-            "WEBSITE": icon(faGlobe).html[0],
-        };
-        const storeLinks = Array.from(section.querySelectorAll('a'));
-        storeLinks.forEach(link => {
-            const linkUrl = link.href;
-            for (const [key, iconSvg] of Object.entries(storeLinkers)) {
-                if (link.textContent === "%BINDER " + key + " LINK%") {
-                    const parent = link.parentElement;
-                    if (!parent?.hasClass('binder-store-link-container')) {
-                        parent?.addClass('binder-store-link-container');
-                    }
-
-                    const newLink = document.createElement('a');
-                    newLink.href = linkUrl;
-                    newLink.innerHTML = iconSvg;
-                    newLink.addClass('binder-store-link');
-
-                    link.replaceWith(newLink);
-                }
-            }
-        });
-        section.querySelectorAll('.binder-store-link-container').forEach(container => {
-            const children = Array.from(container.children);
-
-            if (children.length > 3) {
-                container.innerHTML = '';
-
-                for (let i = 0; i < children.length; i += 3) {
-                    const newContainer = document.createElement('div');
-                    newContainer.classList.add('binder-store-link-container');
-
-                    for (let j = i; j < i + 3 && j < children.length; j++) {
-                        newContainer.appendChild(children[j]);
-                    }
-                    container.appendChild(newContainer);
-                }
-                container.removeClass('binder-store-link-container');
-            }
         });
 
         let rollingStyle = "";
@@ -1013,6 +996,9 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                 chapterTitle = chapter.title;
                 chapterNumber++;
             }
+            if (html.title) {
+                chapterTitle = html.title;
+            }
 
             sections.push({
                 title: chapterTitle,
@@ -1111,6 +1097,9 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             if (!chapter.isFrontMatter && !chapter.isBackMatter) {
                 chapterTitle = chapter.title;
                 chapterNumber++;
+            }
+            if (html.title) {
+                chapterTitle = html.title;
             }
 
             sections.push({
@@ -1275,9 +1264,9 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     <button onClick={createPdf} className="bind-to-pdf" disabled>Bind to book (.pdf) (WIP)</button>
                 </div>
 
-                <div>
+                <div className="appearance-section">
                     <h2>
-                        Themes
+                        Appearance
                         <HelperTooltip>
                             Theme and styling to apply to chapters.
                         </HelperTooltip>
@@ -1285,7 +1274,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
                     <div>
                         <div className='metadata-label'>
-                            <label>Premade Theme</label>
+                            <label>Theme</label>
                             <HelperTooltip>
                                 The premade theme to apply to the book.
                             </HelperTooltip>
@@ -1297,6 +1286,9 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     <h3>
                         <span onClick={() => setStyleOverrideCollapsed(!styleOverrideCollapsed)} className="collapse-metadata-header">
                             <span className="collapse-metadata-icon">{styleOverrideCollapsed ? '▶' : '▼'}</span> Style Overrides
+                            <HelperTooltip>
+                                Optional fields for handing table of contents.
+                            </HelperTooltip>
                         </span>
                     </h3>
 
@@ -1332,6 +1324,61 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             </div>
 
                             <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={indents} />
+                        </div>
+                    </div>
+
+                    <h3>
+                        <span onClick={() => setTocOptionsCollapsed(!tocOptionsCollapsed)} className="collapse-metadata-header">
+                            <span className="collapse-metadata-icon">{tocOptionsCollapsed ? '▶' : '▼'}</span> Table of Contents Options
+                        </span>
+                        <HelperTooltip>
+                            Optional fields for handing table of contents.
+                        </HelperTooltip>
+                    </h3>
+
+                    <div className={tocOptionsCollapsed ? 'metadata-section-collapsed' : ''}>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="tocTitle">Table of Contents</label>
+                                <HelperTooltip>
+                                    The title to override for the table of contents. Leave blank for: Table of Contents.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="text"
+                                id="tocTitle"
+                                className="metadata-input"
+                                value={metadata.tocTitle}
+                                onChange={handleTextInputChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="showContents">Show Table of Contents</label>
+                                <HelperTooltip>
+                                    Show the table of contents in the book. Default: true. Uncheck to hide the table of contents.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="checkbox"
+                                id="showContents"
+                                checked={metadata.showContents}
+                                onChange={handleCheckedChange}
+                            />
+                        </div>
+                        <div>
+                            <div className='metadata-label'>
+                                <label htmlFor="startReading">Start Reading After</label>
+                                <HelperTooltip>
+                                    Start reading the book from after the table of contents. Default: true. Uncheck to start reading from cover page.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="checkbox"
+                                id="startReading"
+                                checked={metadata.startReading}
+                                onChange={handleCheckedChange}
+                            />
                         </div>
                     </div>
                 </div>
@@ -1590,57 +1637,6 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleTextInputChange}
                             />
                         </div>
-                    </div>
-
-                    <h2>
-                        Table of Contents Options
-                        <HelperTooltip>
-                            Optional fields for handing table of contents.
-                        </HelperTooltip>
-                    </h2>
-
-                    <div>
-                        <div className='metadata-label'>
-                            <label htmlFor="tocTitle">Table of Contents</label>
-                            <HelperTooltip>
-                                The title to override for the table of contents. Leave blank for: Table of Contents.
-                            </HelperTooltip>
-                        </div>
-                        <input
-                            type="text"
-                            id="tocTitle"
-                            className="metadata-input"
-                            value={metadata.tocTitle}
-                            onChange={handleTextInputChange}
-                        />
-                    </div>
-                    <div>
-                        <div className='metadata-label'>
-                            <label htmlFor="showContents">Show Table of Contents</label>
-                            <HelperTooltip>
-                                Show the table of contents in the book. Default: true. Uncheck to hide the table of contents.
-                            </HelperTooltip>
-                        </div>
-                        <input
-                            type="checkbox"
-                            id="showContents"
-                            checked={metadata.showContents}
-                            onChange={handleCheckedChange}
-                        />
-                    </div>
-                    <div>
-                        <div className='metadata-label'>
-                            <label htmlFor="startReading">Start Reading</label>
-                            <HelperTooltip>
-                                Start reading the book from after the table of contents. Default: true. Uncheck to start reading from cover page.
-                            </HelperTooltip>
-                        </div>
-                        <input
-                            type="checkbox"
-                            id="startReading"
-                            checked={metadata.startReading}
-                            onChange={handleCheckedChange}
-                        />
                     </div>
                 </div>
 
