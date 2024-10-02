@@ -12,6 +12,27 @@ const DEFAULT_SETTINGS: BinderPluginSettings = {
 
 export default class BinderPlugin extends Plugin {
 	settings: BinderPluginSettings;
+	binderObservers: ResizeObserver[];
+	binderBooks: ePub.Book[];
+
+	cleanBinder() {
+		if (this.binderObservers) {
+            this.binderObservers.forEach(observer => {
+                observer.disconnect();
+            });
+            this.binderObservers = [];
+        }
+        if (this.binderBooks) {
+            this.binderBooks.forEach(book => {
+                book.destroy();
+            });
+            this.binderBooks = [];
+        }
+
+        document.querySelectorAll("section.binder-chapter").forEach(section => {
+            section.remove();
+        });
+	}
 
 	async onload() {
 		await this.loadSettings();

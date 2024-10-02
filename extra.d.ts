@@ -1,4 +1,5 @@
 import "obsidian";
+import { Location } from "epubjs";
 
 declare module 'obsidian' {
     interface MenuItem {
@@ -18,11 +19,9 @@ declare global {
     interface Window {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         electron: any;
-        binderObservers: ResizeObserver[];
     }
 }
 
-import { Location } from "epubjs";
 declare module "epubjs" {
     interface Rendition {
         currentLocation(): Location;

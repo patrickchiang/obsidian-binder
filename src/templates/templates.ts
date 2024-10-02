@@ -4,13 +4,16 @@ export const copyrightTemplate = `
 div(class='copyright-page sp')
     p(class='sp') #{data["Book Name"]} &copy; #{data["Year"]} #{data["Copyright Holder"]}.
     p(class='sp') All rights reserved.
-    each val in data["Collaborators"]
-        p(class='sp') #{val}
-    each val in data["ISBNs"]
-        p(class='sp') #{val}
+    if data["Collaborators"]
+        each val in data["Collaborators"]
+            p(class='sp') #{val}
+    if data["ISBNs"]
+        each val in data["ISBNs"]
+            p(class='sp') #{val}
     p(class='sp') #{data["Disclaimer"]}
-    each val in data["Publishers"]
-        p(class='sp') #{val}
+    if data["Publisher"]
+        each val in data["Publishers"]
+            p(class='sp') #{val}
 `;
 
 export const dedicationTemplate = `

@@ -12,6 +12,26 @@ p {
     line-height: 1.5em;
 }
 
+section.frontmatter {
+    text-align: center;
+}
+
+span.frontmatter {
+    display: none;
+}
+
+li.frontmatter {
+    margin-bottom: 1em;
+}
+
+li.backmatter {
+    margin-top: 1em;
+}
+
+span.backmatter {
+    display: none;
+}
+
 .copyright-page p {
     margin-top: 0;
     text-align: center;
@@ -39,9 +59,12 @@ p {
     font-weight: bold;
 }
 
+.epigraph-page {
+    margin-top: 5em;
+}
+
 .epigraph-page .quote {
-    margin-top: 10em;
-    text-align: center;
+    text-align: left;
 }
 
 .epigraph-page .attribution {

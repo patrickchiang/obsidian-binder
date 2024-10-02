@@ -82,52 +82,47 @@ export class BinderIntegrationView extends ItemView {
     }
 
     async onOpen() {
-        window.ResizeObserver = class CalmResizeObserver extends ResizeObserver {
+        const plugin = this.plugin;
+
+        class CalmResizeObserver extends ResizeObserver {
             constructor(callback: ResizeObserverCallback) {
                 super(callback);
-                if (!window.binderObservers) {
-                    window.binderObservers = [];
+
+                if (!plugin.binderObservers) {
+                    plugin.binderObservers = [];
                 }
-                window.binderObservers.push(this);
+                plugin.binderObservers.push(this);
             }
-        };
+        }
+
+        window.ResizeObserver = CalmResizeObserver;
     }
 
     startRender(folder: TAbstractFile) {
         this.folder = folder;
         this.leaf.updateHeader();
 
-        const { contentEl } = this;
+        this.cleanup();
 
-        if (this.reactRoot) {
-            this.reactRoot.unmount();
-        }
-        contentEl.empty();
-        if (window.binderObservers) {
-            window.binderObservers.forEach(observer => {
-                observer.disconnect();
-            });
-        }
+        const { contentEl } = this;
 
         const reactContainer = contentEl.createDiv();
         this.reactRoot = createRoot(reactContainer);
         this.reactRoot.render(<BinderView app={this.app} folder={this.folder} plugin={this.plugin} />);
     }
 
-    async onClose() {
-        if (window.binderObservers) {
-            window.binderObservers.forEach(observer => {
-                observer.disconnect();
-            });
-        }
+    cleanup() {
+        this.contentEl.empty();
 
         if (this.reactRoot) {
             this.reactRoot.unmount();
         }
 
-        document.querySelectorAll("section.binder-chapter").forEach(section => {
-            section.remove();
-        });
+        this.plugin.cleanBinder();
+    }
+
+    async onClose() {
+        this.cleanup();
     }
 }
 
@@ -724,7 +719,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                 return {
                     section: wrapper,
                     images: [],
-                    title: bookmatter.title
+                    title: bookmatter.title,
+                    increment: false
                 };
             }
         }
@@ -818,7 +814,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
         const images = await Promise.all(imageSources);
 
-        return { section, images };
+        return { section, images, increment: !chapter.isFrontMatter && !chapter.isBackMatter };
     }
 
     const createWindowAndPrint = (html: string, filePath: string) => {
@@ -890,32 +886,35 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
     const validateMetadata = async () => {
         if (!metadata.title) {
             new Notice('Title is required.');
-            return;
+            return false;
         }
 
         if (!metadata.cover) {
             new Notice('Cover image is required.');
-            return;
+            return false;
         }
 
         if (!metadata.author) {
             new Notice('Author name is required.');
-            return;
+            return false;
         }
 
         if (!metadata.language) {
             new Notice('Language is required.');
-            return;
+            return false;
         }
 
         if (!chapters.some(chapter => chapter.include)) {
             new Notice('No chapters selected.');
-            return;
+            return false;
         }
+
+        return true;
     };
 
     const createPdf = async () => {
-        validateMetadata();
+        const validation = validateMetadata();
+        if (!validation) return;
 
         const dialog = window.electron.remote.dialog;
         const saveDialog = await dialog.showSaveDialog({
@@ -956,7 +955,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
     };
 
     const createEpub = async () => {
-        validateMetadata();
+        const validation = validateMetadata();
+        if (!validation) return;
 
         type MetadataValue = string | number | boolean | undefined;
         const addIfValid = (key: string, value: MetadataValue, invalidValues: MetadataValue[]): Partial<Metadata> => {
@@ -988,54 +988,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             ...addIfValid('source', metadata.transcriptionSource, ['']),
         };
 
-        const sections: Section[] = [];
-        const resources: Resource[] = [];
-
-        let chapterNumber = 1;
-        for (const chapter of chapters) {
-            if (!chapter.include) continue;
-            if (!chapter.title) {
-                new Notice('Chapter title is required for file: ' + chapter.file.basename + '.md');
-                return;
-            }
-
-            const readFile = await app.vault.cachedRead(chapter.file);
-            const html = await makeHTML(readFile, chapter, chapterNumber);
-            let chapterTitle = chapter.title;
-            if (!chapter.isFrontMatter && !chapter.isBackMatter) {
-                chapterTitle = chapter.title;
-                chapterNumber++;
-            }
-            if (html.title) {
-                chapterTitle = html.title;
-            }
-
-            sections.push({
-                title: chapterTitle,
-                content: html.section.innerHTML,
-                excludeFromContents: chapter.excludeFromContents,
-                isFrontMatter: chapter.isFrontMatter,
-            });
-
-            html.images.forEach(image => {
-                const inputImage = fs.readFileSync(image);
-                resources.push({
-                    name: image,
-                    data: inputImage,
-                });
-            });
-        }
-
-        const epub = new Epub({
-            css: finalThemeStyle,
-            metadata: epubMetadata,
-            options: {
-                startReading: metadata.startReading,
-                showContents: metadata.showContents
-            },
-            resources: resources,
-            sections: sections
-        });
+        const epub = await constructEpub(epubMetadata, chapters);
+        if (!epub) return;
 
         const dialog = window.electron.remote.dialog;
         const saveDialog = await dialog.showSaveDialog({
@@ -1067,29 +1021,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         previewPub();
     };
 
-    const previewPub = async (url?: string) => {
-        setBookLoading(true);
-
-        document.querySelector("#ebook-preview-render")?.empty();
-        rendition?.destroy();
-
-        const bookId = metadata.identifier || uuid();
-
-        const coverData = metadata.cover ?
-            fs.readFileSync(metadata.cover) : Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgEB/eqNlgAAAABJRU5ErkJggg==", 'base64');
-
-        const epubMetadata: Metadata = {
-            title: metadata.title || "Placeholder Title",
-            cover: {
-                name: metadata.cover,
-                data: coverData
-            },
-            author: metadata.author || "Placeholder Author",
-            id: bookId || "placeholder-id",
-            language: metadata.language || "en",
-            contents: metadata.tocTitle || "Table of Contents"
-        };
-
+    const constructEpub = async (epubMetadata: Metadata, chapters: BookChapter[]) => {
         const sections: Section[] = [];
         const resources: Resource[] = [];
 
@@ -1104,7 +1036,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             const readFile = await app.vault.cachedRead(chapter.file);
             const html = await makeHTML(readFile, chapter, chapterNumber);
             let chapterTitle = chapter.title;
-            if (!chapter.isFrontMatter && !chapter.isBackMatter) {
+
+            if (html.increment) {
                 chapterTitle = chapter.title;
                 chapterNumber++;
             }
@@ -1117,6 +1050,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                 content: html.section.innerHTML,
                 excludeFromContents: chapter.excludeFromContents,
                 isFrontMatter: chapter.isFrontMatter,
+                isBackMatter: chapter.isBackMatter
             });
 
             html.images.forEach(image => {
@@ -1139,6 +1073,35 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             sections: sections
         });
 
+        return epub;
+    };
+
+    const previewPub = async (url?: string) => {
+        setBookLoading(true);
+
+        document.querySelector("#ebook-preview-render")?.empty();
+        plugin.cleanBinder();
+
+        const bookId = metadata.identifier || uuid();
+
+        const coverData = metadata.cover ?
+            fs.readFileSync(metadata.cover) : Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgEB/eqNlgAAAABJRU5ErkJggg==", 'base64');
+
+        const epubMetadata: Metadata = {
+            title: metadata.title || "Placeholder Title",
+            cover: {
+                name: metadata.cover,
+                data: coverData
+            },
+            author: metadata.author || "Placeholder Author",
+            id: bookId || "placeholder-id",
+            language: metadata.language || "en",
+            contents: metadata.tocTitle || "Table of Contents"
+        };
+
+        const epub = await constructEpub(epubMetadata, chapters);
+        if (!epub) return;
+
         const buffer = await epub.buffer();
         const blob = new Blob([buffer], { type: 'application/epub+zip' });
 
@@ -1147,6 +1110,11 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
         const bookRendition = book.renderTo("ebook-preview-render", { width: "100%", height: "100%" });
         setRendition(bookRendition);
+        if (!plugin.binderBooks) {
+            plugin.binderBooks = [];
+        }
+        plugin.binderBooks.push(book)
+
         book.spine.hooks.content.register((doc: Document) => {
             doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
                 link.remove();
