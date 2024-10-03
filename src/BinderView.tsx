@@ -1290,7 +1290,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     </div>
                 </div>
                 <div className="appearance-section modal-content">
-                    <h2>
+                    <h2 className='lineup-helper'>
                         Appearance
                         <HelperTooltip>
                             Theme and styling to apply to chapters.
@@ -1308,7 +1308,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         <ThemeSelect value={metadata.theme} onChange={handleThemeChange} />
                     </div>
 
-                    <h3>
+                    <h3 className='lineup-helper'>
                         <span onClick={() => setStyleOverrideCollapsed(!styleOverrideCollapsed)} className="collapse-metadata-header">
                             <span className="collapse-metadata-icon">{styleOverrideCollapsed ? '▶' : '▼'}</span> Style Overrides
                             <HelperTooltip>
@@ -1352,7 +1352,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </div>
                     </div>
 
-                    <h3>
+                    <h3 className='lineup-helper'>
                         <span onClick={() => setTocOptionsCollapsed(!tocOptionsCollapsed)} className="collapse-metadata-header">
                             <span className="collapse-metadata-icon">{tocOptionsCollapsed ? '▶' : '▼'}</span> Table of Contents Options
                         </span>
@@ -1409,7 +1409,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                 </div>
 
                 <div className="metadata-section modal-content">
-                    <h2>
+                    <h2 className='lineup-helper'>
                         Metadata (Required)
                         <HelperTooltip>
                             All fields in this section are required.
@@ -1435,7 +1435,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         <div className='metadata-label'>
                             <label htmlFor="author">Author</label>
                             <HelperTooltip>
-                                The author of the book.
+                                The author of the book. Use regular naming scheme (like "John Doe", not "Doe, John").
                             </HelperTooltip>
                         </div>
 
@@ -1473,11 +1473,12 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             accept=".svg, .png, .jpg, .jpeg, .gif, .tif, .tiff"
                             onChange={handleFileChange}
                         />
-                        <button className="select-cover" onClick={() => document.getElementById('cover')?.click()}>Choose file</button>
+                        <button className="select-cover" onClick={() => document.getElementById('cover')?.click()}>
+                            {metadata.cover ? 'file: ' + path.basename(metadata.cover) : 'Select Cover Image'}
+                        </button>
 
                         {metadata.cover && (
                             <div className="select-cover-text">
-                                file: {path.basename(metadata.cover)}
                                 <img src={
                                     `data:image/jpeg;base64,${fs.readFileSync(metadata.cover).toString('base64')}`
                                 } className="cover-preview"></img>
@@ -1486,7 +1487,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     </div>
                 </div>
                 <div className="optional-section modal-content">
-                    <h2>
+                    <h2 className='lineup-helper'>
                         <span onClick={() => setOptionalMetadataCollapsed(!optionalMetadataCollapsed)} className="collapse-metadata-header">
                             <span className="collapse-metadata-icon">{optionalMetadataCollapsed ? '▶' : '▼'}</span> Optional Metadata
                         </span>
@@ -1547,7 +1548,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             <div className='metadata-label'>
                                 <label htmlFor="sequence">Sequence</label>
                                 <HelperTooltip>
-                                    The sequence number of the book in the series.
+                                    The sequence number of the book in the series. A simple number will do.
                                 </HelperTooltip>
                             </div>
                             <input
@@ -1622,7 +1623,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             <div className='metadata-label'>
                                 <label htmlFor="publisher">Publisher</label>
                                 <HelperTooltip>
-                                    The publisher of the book.
+                                    The publisher of the book. Do not reference Amazon (they will reject it).
                                 </HelperTooltip>
                             </div>
                             <input
@@ -1669,7 +1670,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             <div className="bulk-actions">
                 <h2>Contents</h2>
 
-                <p>
+                <p className='lineup-helper'>
                     <span onClick={() => setUtilitiesCollapsed(!utilitiesCollapsed)} className="collapse-metadata-header">
                         <span className="collapse-metadata-icon">{utilitiesCollapsed ? '▶' : '▼'}</span> Utilities
                     </span>

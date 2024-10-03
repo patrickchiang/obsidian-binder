@@ -96,12 +96,12 @@ span.backmatter {
     margin-top: 3em;
     text-align: center;
     font-weight: bold;
-    font-size: 200%;
+    font-size: 250%;
 }
 
 .title-page .subtitle {
     text-align: center;
-    font-size: 140%;
+    font-size: 200%;
 }
 
 .title-page .authors {
@@ -116,7 +116,7 @@ span.backmatter {
 
 .title-page .author {
     font-weight: bold;
-    font-size: 110%;
+    font-size: 180%;
     text-align: center;
 }
 

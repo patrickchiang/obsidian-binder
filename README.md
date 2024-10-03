@@ -1,10 +1,10 @@
+![Binder](img/main.png)
+
 # Obsidian Binder
 
 Obsidian Binder is an Obsidian plugin that allows users to effortlessly turn their files into a professional-quality, well-formatted, beautiful eBooks. This plugin also includes pre-made templates for front and back matter to streamline the export process.
 
 The primary format is ePub 3.0, targeted for export to the Amazon Kindle store.
-
-![Binder](img/binder.png)
 
 ## Usage
 
@@ -12,59 +12,40 @@ The primary format is ePub 3.0, targeted for export to the Amazon Kindle store.
 
 ![Bind](img/bind.png)
 
-1. Right click on folder to bind, select Bind.
-2. Fill in the options (some metadata are required).
-3. Arrange and customize chapters.
-4. Press the Bind button at the top.
-5. Save.
+1. Right click on folder to bind, select Binder.
+2. Fill in the options.
+3. Save.
 
-You can check your output file with Kindle Previewer 3 or Calibre.
+You can check your output file with [Kindle Previewer 3](https://kdp.amazon.com/en_US/help/topic/G202131170) or [Calibre](https://calibre-ebook.com/).
 
-#### Rearrange Chapters:
+It should show that all metadata are correctly filled out.
+
+![Amazon Previewer 3](img/kindlepreview.png)
+
+### Rearrange Chapters
+
+Drag and drop.
 
 ![Rearrange chapters](img/rearrange.png)
 
-#### Customization:
+### Templates
 
-![Customization](img/customization.png)
-
-### Formatting Customization
-
-#### Templates
-
-![Templates](img/frontmatter.png)
+![Templates](img/templates.png)
 
 1. Right click on folder.
-2. Add front/back matter.
+2. Add Front/Back matter.
 
-These will be created with prefixed numbers. If you're prefixing your chapters with numbers, frontmatter will be added before your chapters and backmatter should be after your chapters.
+These will be created with prefixed text. There will be a list of properties at the top of the page, with explanations for how to fill them out below.
 
-#### Store Link Icons
+For example, this is the copyright template:
 
-You can include link icons to guide users to your store/web pages with this format:
+![Template page](img/templatedpage.png)
 
-```
-[%BINDER AMAZON LINK%](link)
-```
+Which renders:
 
-Modify the link. The `%BINDER ___ LINK%` tag turns this into an icon.
+![Copyright render](img/templatepreview.png)
 
-Store icons included:
-
-* `%BINDER AMAZON LINK%`
-* `%BINDER APPLE LINK%`
-* `%BINDER AUDIBLE LINK%`
-* `%BINDER FACEBOOK LINK%`
-* `%BINDER PATREON LINK%`
-* `%BINDER ROYALROAD LINK%`
-* `%BINDER TWITTER LINK%`
-* `%BINDER WEBSITE LINK%`
-
-The "About the Author" template page includes examples.
-
-#### Customize Styling (Advanced CSS)
-
-![Customize styling](img/formatting.png)
+### Customize Styling (Advanced CSS)
 
 Customize styling of portions of your book by creating a code element (tab) with your desired CSS, like this:
 
@@ -72,13 +53,27 @@ Customize styling of portions of your book by creating a code element (tab) with
 %BINDER CSS% text-align: center;
 ```
 
-The "Copyright" template page includes an example.
-
 Your style is reset every time the binder encounters one of these. So, in order to reset your formatting, you can simply add an empty one:
 
 ```
 %BINDER CSS%
 ```
+
+Here is an example:
+
+![Customize CSS](img/customizecss.png)
+
+Which renders:
+
+![Customize CSS Render](img/customizecss-preview.png)
+
+### Accessibility
+
+The epub creator has been checked for accessibility standards.
+
+![ACE check](img/acecheck.png)
+
+However, you can still create an epub with standard violations (eg. if you have heading jumps). To ensure there are no errors, double check with [ACE by Daisy](https://daisy.org/activities/software/ace/).
 
 ## Installing
 

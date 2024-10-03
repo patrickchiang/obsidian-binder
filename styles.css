@@ -216,9 +216,14 @@ h1.title {
     min-width: 12em;
 }
 
+.lineup-helper,
+.metadata-label {
+    display: inline-flex;
+    align-items: center;
+}
+
 .metadata-label {
     min-width: 12em;
-    display: inline-block;
 }
 
 .appearance-section input[type='checkbox'] {
