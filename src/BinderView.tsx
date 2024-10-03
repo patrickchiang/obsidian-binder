@@ -21,9 +21,9 @@ import LanguageSelect from './LanguageSelect.js';
 import PreviewColorSelect from './PreviewColorSelect.js';
 import StyleOverrideSelect, { calculateStyleOverrides, dropcaps, horizontalRules, indents } from './StyleOverrideSelect.js';
 import ThemeSelect, { getStyleForTheme } from './ThemeSelect.js';
+import { backmatters, convertToPage, frontmatters } from './templates/bookmatter.js';
 
 import BinderPlugin from './main.js';
-import { backmatters, convertToPage, frontmatters } from './templates/bookmatter.js';
 
 interface EpubMetadata extends BookMetadata {
     cover: string;
@@ -82,7 +82,7 @@ export class BinderIntegrationView extends ItemView {
     }
 
     async onOpen() {
-        const plugin = this.plugin;
+        const { contentEl, plugin } = this;
 
         class CalmResizeObserver extends ResizeObserver {
             constructor(callback: ResizeObserverCallback) {
@@ -96,6 +96,16 @@ export class BinderIntegrationView extends ItemView {
         }
 
         window.ResizeObserver = CalmResizeObserver;
+
+        const reactContainer = contentEl.createDiv();
+        this.reactRoot = createRoot(reactContainer);
+        this.reactRoot.render(
+            <div>
+                <h1>Obsidian Binder</h1>
+                <p>Open a folder to start creating your book.</p>
+                <p>Right click on a folder &gt; Binder</p>
+            </div>
+        );
     }
 
     startRender(folder: TAbstractFile) {
@@ -112,13 +122,12 @@ export class BinderIntegrationView extends ItemView {
     }
 
     cleanup() {
-        this.contentEl.empty();
-
-        if (this.reactRoot) {
-            this.reactRoot.unmount();
+        const { plugin, contentEl, reactRoot } = this;
+        contentEl.empty();
+        if (reactRoot) {
+            reactRoot.unmount();
         }
-
-        this.plugin.cleanBinder();
+        plugin.cleanBinder();
     }
 
     async onClose() {
@@ -126,9 +135,9 @@ export class BinderIntegrationView extends ItemView {
     }
 }
 
-const TEMP_FOLDER_NAME = 'obsidian-binder-temp';
-const TEMP_SITE_NAME = 'obsidian-binder-temp.html';
-const SAVE_FILE_NAME = 'obsidian-binder-last-save.yaml';
+const TEMP_FOLDER_NAME = 'binder-temp';
+const TEMP_SITE_NAME = 'binder-temp.html';
+const SAVE_FILE_NAME = 'binder-save.yaml';
 
 const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
     const getBasePath = () => {
@@ -191,60 +200,68 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
     const files = getFilesInFolder(folder as TFolder);
 
-    const hardCodedFrontMatter = [
-        "000 Copyright",
-        "000 Find Me Online",
-        "000 Dedication",
-    ];
+    const isDefaultFrontMatter = (file: TFile) => {
+        return frontmatters.some(bookmatter => file.basename === `_binder ${bookmatter.title}`);
+    };
+    const isDefaultBackMatter = (file: TFile) => {
+        return backmatters.some(bookmatter => file.basename === `_binder ${bookmatter.title}`);
+    };
 
-    const hardCodedBackMatter = [
-        "999 Other Books",
-        "999 Preview Book",
-        "999 About the Author"
-    ];
+    const rearrangeChapters = (chapters: BookChapter[]) => {
+        const frontmatter = chapters.filter(chapter => chapter.isFrontMatter);
+        const backmatter = chapters.filter(chapter => chapter.isBackMatter);
+        const normalChapters = chapters.filter(chapter => !chapter.isFrontMatter && !chapter.isBackMatter);
+        return [...frontmatter, ...normalChapters, ...backmatter];
+    };
 
-    const loadFromYaml = () => {
-        const defaultBookData = {
-            metadata: {
-                title: app.vault.getName(),
-                cover: '',
-                author: '',
-                identifier: '',
-                language: 'en',
+    const getDefaultBookData = () => {
+        const defaultValueMetadata = {
+            title: app.vault.getName(),
+            cover: '',
+            author: '',
+            identifier: '',
+            language: 'en',
 
-                description: '',
-                series: '',
-                sequence: -1,
-                fileAs: '',
-                genre: '',
-                tags: '',
-                copyright: '',
-                publisher: '',
-                published: '',
-                transcriptionSource: '',
+            description: '',
+            series: '',
+            sequence: -1,
+            fileAs: '',
+            genre: '',
+            tags: '',
+            copyright: '',
+            publisher: '',
+            published: '',
+            transcriptionSource: '',
 
-                showContents: true,
-                tocTitle: '',
-                startReading: true,
-                theme: 'apex',
-                components: ['_dropcap1', '_hr1', '_indent1']
-            },
-            chapters: files.map(file => ({
-                title: file.basename.replace(/^\d*/, '').trim(),
-                file,
-                include: true,
-                excludeFromContents: false,
-                isFrontMatter: hardCodedFrontMatter.includes(file.basename),
-                isBackMatter: hardCodedBackMatter.includes(file.basename)
-            }))
+            showContents: true,
+            tocTitle: '',
+            startReading: true,
+            theme: 'apex',
+            components: ['_dropcap1', '_hr1', '_indent1']
         };
 
-        if (plugin.settings.persistSettings === false) return defaultBookData;
+        const defaultValueChapters = files.map(file => ({
+            title: file.basename.replace(/^\d*/, '').trim(),
+            file,
+            include: true,
+            excludeFromContents: false,
+            isFrontMatter: isDefaultFrontMatter(file),
+            isBackMatter: isDefaultBackMatter(file)
+        }));
+
+        return {
+            metadata: defaultValueMetadata,
+            chapters: rearrangeChapters(defaultValueChapters)
+        };
+    };
+
+    const loadFromYaml = () => {
+        if (plugin.settings.persistSettings === false) return getDefaultBookData();
 
         try {
             const filePath = getYamlPath();
             if (fs.existsSync(filePath) === false) {
-                return defaultBookData;
+                return getDefaultBookData();
             }
 
             const yamlStr = fs.readFileSync(filePath, 'utf8');
@@ -253,6 +270,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             let chapters: BookChapter[];
             if (data.chapters.length === files.length &&
                 data.chapters.every(chapter => files.some(file => file.path === chapter.file))) {
+                // Chapters are intact
                 chapters = data.chapters.map((chapter: BookStoredChapter) => {
                     const file = files.find(file => file.path === chapter.file) as TFile;
                     return {
@@ -280,11 +298,11 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
             return {
                 metadata: data.metadata as EpubMetadata,
-                chapters: chapters as BookChapter[],
+                chapters: rearrangeChapters(chapters) as BookChapter[],
             };
         } catch (error) {
             new Notice('Error reading or parsing YAML file:', error);
-            return defaultBookData;
+            return getDefaultBookData();
         }
     };
 
@@ -502,7 +520,6 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         } else {
             await previewPub(location);
         }
-        setBookLocation(location);
     };
 
     useEffect(() => {
@@ -527,7 +544,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
     const [styleOverrideCollapsed, setStyleOverrideCollapsed] = useState(false);
     const [tocOptionsCollapsed, setTocOptionsCollapsed] = useState(false);
-    const [optionalMetadataCollapsed, setOptionalMetadataCollapsed] = useState(true);
+    const [optionalMetadataCollapsed, setOptionalMetadataCollapsed] = useState(false);
+    const [utilitiesCollapsed, setUtilitiesCollapsed] = useState(true);
     const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
 
     const findRelativeParentOffsetTop = (element: HTMLElement | null) => {
@@ -697,7 +715,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
         const bookmatters = frontmatters.concat(backmatters);
         for (const bookmatter of bookmatters) {
-            if (chapterName === `000 ${bookmatter.title}`) {
+            if (chapterName === `_binder ${bookmatter.title}`) {
                 const page = convertToPage(markdown);
 
                 const bodyResponse = page["Body"];
@@ -965,12 +983,15 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
         const bookId = metadata.identifier || uuid();
 
+        const useTextCover = (!metadata.cover || metadata.cover === '');
+        const coverData = useTextCover ? "No Cover Art" : {
+            name: metadata.cover,
+            data: fs.readFileSync(metadata.cover)
+        };
+
         const epubMetadata: Metadata = {
             title: metadata.title,
-            cover: {
-                name: metadata.cover,
-                data: fs.readFileSync(metadata.cover),
-            },
+            cover: coverData,
             author: metadata.author,
             id: bookId,
             language: metadata.language,
@@ -988,7 +1009,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             ...addIfValid('source', metadata.transcriptionSource, ['']),
         };
 
-        const epub = await constructEpub(epubMetadata, chapters);
+        const epub = await constructEpub(epubMetadata, chapters, useTextCover);
         if (!epub) return;
 
         const dialog = window.electron.remote.dialog;
@@ -1021,7 +1042,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         previewPub();
     };
 
-    const constructEpub = async (epubMetadata: Metadata, chapters: BookChapter[]) => {
+    const constructEpub = async (epubMetadata: Metadata, chapters: BookChapter[], useTextCover: boolean) => {
         const sections: Section[] = [];
         const resources: Resource[] = [];
 
@@ -1066,6 +1087,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             css: finalThemeStyle,
             metadata: epubMetadata,
             options: {
+                coverType: useTextCover ? 'text' : 'image',
                 startReading: metadata.startReading,
                 showContents: metadata.showContents,
             },
@@ -1076,6 +1098,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         return epub;
     };
 
+    const [readingProgress, setReadingProgress] = useState<number>(-1);
+
     const previewPub = async (url?: string) => {
         setBookLoading(true);
 
@@ -1084,22 +1108,22 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
         const bookId = metadata.identifier || uuid();
 
-        const coverData = metadata.cover ?
-            fs.readFileSync(metadata.cover) : Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgEB/eqNlgAAAABJRU5ErkJggg==", 'base64');
+        const useTextCover = (!metadata.cover || metadata.cover === '');
+        const coverData = useTextCover ? "No Cover Art" : {
+            name: metadata.cover,
+            data: fs.readFileSync(metadata.cover)
+        };
 
         const epubMetadata: Metadata = {
             title: metadata.title || "Placeholder Title",
-            cover: {
-                name: metadata.cover,
-                data: coverData
-            },
+            cover: coverData,
             author: metadata.author || "Placeholder Author",
             id: bookId || "placeholder-id",
             language: metadata.language || "en",
             contents: metadata.tocTitle || "Table of Contents"
         };
 
-        const epub = await constructEpub(epubMetadata, chapters);
+        const epub = await constructEpub(epubMetadata, chapters, useTextCover);
         if (!epub) return;
 
         const buffer = await epub.buffer();
@@ -1195,6 +1219,30 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         bookRendition.hooks.content.register((content: Document) => {
             setBookLoading(false);
         });
+
+        book.ready.then(async () => {
+            setReadingProgress(-1);
+            await book.locations.generate(1024);
+            calculateBookProgress(book, bookRendition.location.start.cfi);
+        });
+
+        type Relocation = {
+            start: {
+                cfi: string;
+            };
+        };
+        bookRendition.on('relocated', (location: Relocation) => {
+            setBookLocation(location.start.cfi);
+            calculateBookProgress(book, location.start.cfi);
+        });
+    };
+
+    const calculateBookProgress = async (book: ePub.Book, cfi: string) => {
+        const percentage = book.locations.percentageFromCfi(cfi);
+        const displayPercent = Math.round(percentage * 100);
+        if (percentage || percentage === 0) {
+            setReadingProgress(displayPercent);
+        }
     };
 
     const previouPage = async () => {
@@ -1203,7 +1251,6 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         } else {
             previewPub();
         }
-        setBookLocation(rendition?.currentLocation().start.cfi);
     };
 
     const nextPage = async () => {
@@ -1212,7 +1259,6 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         } else {
             previewPub();
         }
-        setBookLocation(rendition?.currentLocation().start.cfi);
     };
 
     const [windowReady, setWindowReady] = useState<boolean>(false);
@@ -1222,27 +1268,28 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
     return (
         <>
-            <div className="ebook-preview">
-                <div className="phone-frame">
-                    <div className="phone-toolbar">
-                        <button onClick={previouPage} className="toolbar-button" aria-label="Go back one page">🠜</button>
-                        <PreviewColorSelect value={previewColorScheme} onChange={handlePreviewColorSchemeChange} />
-                        <button onClick={jumpToTOC} className="toolbar-button" aria-label="Go to Table of Contents">Table of Contents</button>
-                        <button onClick={refreshClick} className="toolbar-button" disabled={bookLoading} aria-label="Load/refresh preview">↻</button>
-                        <button onClick={nextPage} className="toolbar-button" aria-label="Go forward one page">🠞</button>
-                    </div>
-                    <div id="ebook-preview-render"></div>
-                </div>
+            <h1 className='title'>Binder</h1>
+            <div className='action-buttons'>
+                <button onClick={createEpub} className="mod-cta bind-to-ebook">Save eBook (.epub)</button>
+                <button onClick={createPdf} className="bind-to-pdf" disabled>Save print (.pdf) (WIP)</button>
             </div>
-
-            <div className="modal-content">
-                <h1>Binder</h1>
-                <div>
-                    <button onClick={createEpub} className="mod-cta bind-to-ebook">Bind to eBook (.epub)</button>
-                    <button onClick={createPdf} className="bind-to-pdf" disabled>Bind to book (.pdf) (WIP)</button>
+            <div className='binder-container'>
+                <div className="ebook-preview">
+                    <div className="phone-frame">
+                        <div className="reading-progress">
+                            Preview ({readingProgress === -1 ? "Loading..." : `${readingProgress}%`})
+                        </div>
+                        <div className="phone-toolbar">
+                            <button onClick={previouPage} className="toolbar-button" aria-label="Go back one page">🠜</button>
+                            <PreviewColorSelect value={previewColorScheme} onChange={handlePreviewColorSchemeChange} />
+                            <button onClick={jumpToTOC} className="toolbar-button" aria-label="Go to Table of Contents">Table of Contents</button>
+                            <button onClick={refreshClick} className="toolbar-button" disabled={bookLoading} aria-label="Load/refresh preview">↻</button>
+                            <button onClick={nextPage} className="toolbar-button" aria-label="Go forward one page">🠞</button>
+                        </div>
+                        <div id="ebook-preview-render"></div>
+                    </div>
                 </div>
-
-                <div className="appearance-section">
+                <div className="appearance-section modal-content">
                     <h2>
                         Appearance
                         <HelperTooltip>
@@ -1270,7 +1317,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </span>
                     </h3>
 
-                    <div className={styleOverrideCollapsed ? 'metadata-section-collapsed' : ''}>
+                    <div className={styleOverrideCollapsed ? 'section-collapsed' : ''}>
                         <div>
                             <div className='metadata-label'>
                                 <label>Dropcaps</label>
@@ -1314,7 +1361,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </HelperTooltip>
                     </h3>
 
-                    <div className={tocOptionsCollapsed ? 'metadata-section-collapsed' : ''}>
+                    <div className={tocOptionsCollapsed ? 'section-collapsed' : ''}>
                         <div>
                             <div className='metadata-label'>
                                 <label htmlFor="tocTitle">Table of Contents</label>
@@ -1361,7 +1408,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     </div>
                 </div>
 
-                <div className="metadata-section">
+                <div className="metadata-section modal-content">
                     <h2>
                         Metadata (Required)
                         <HelperTooltip>
@@ -1437,7 +1484,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             </div>
                         )}
                     </div>
-
+                </div>
+                <div className="optional-section modal-content">
                     <h2>
                         <span onClick={() => setOptionalMetadataCollapsed(!optionalMetadataCollapsed)} className="collapse-metadata-header">
                             <span className="collapse-metadata-icon">{optionalMetadataCollapsed ? '▶' : '▼'}</span> Optional Metadata
@@ -1447,7 +1495,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </HelperTooltip>
                     </h2>
 
-                    <div className={optionalMetadataCollapsed ? 'metadata-section-collapsed' : ''}>
+                    <div className={optionalMetadataCollapsed ? 'section-collapsed' : ''}>
                         <div>
                             <div className='metadata-label'>
                                 <label htmlFor="identifier">Identifier</label>
@@ -1617,9 +1665,19 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </div>
                     </div>
                 </div>
-
+            </div>
+            <div className="bulk-actions">
                 <h2>Contents</h2>
-                <div className="bulk-actions">
+
+                <p>
+                    <span onClick={() => setUtilitiesCollapsed(!utilitiesCollapsed)} className="collapse-metadata-header">
+                        <span className="collapse-metadata-icon">{utilitiesCollapsed ? '▶' : '▼'}</span> Utilities
+                    </span>
+                    <HelperTooltip>
+                        Bulk actions to apply to chapters.
+                    </HelperTooltip>
+                </p>
+                <div className={utilitiesCollapsed ? 'section-collapsed' : ''}>
                     <div>
                         <div className='bulk-action-category'>Selection</div>
                         <button onClick={selectAllChapters}>
@@ -1698,7 +1756,6 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         }
                     </div>
                 </div>
-
                 {windowReady && (<DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId="chapters">
                         {(provided) => (

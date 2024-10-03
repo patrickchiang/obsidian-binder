@@ -69,7 +69,6 @@ span.backmatter {
 
 .epigraph-page .attribution {
     text-align: right;
-    margin-right: 5em;
 }
 
 .blurb-page h1 {

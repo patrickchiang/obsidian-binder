@@ -15,25 +15,6 @@ export default class BinderPlugin extends Plugin {
 	binderObservers: ResizeObserver[];
 	binderBooks: ePub.Book[];
 
-	cleanBinder() {
-		if (this.binderObservers) {
-            this.binderObservers.forEach(observer => {
-                observer.disconnect();
-            });
-            this.binderObservers = [];
-        }
-        if (this.binderBooks) {
-            this.binderBooks.forEach(book => {
-                book.destroy();
-            });
-            this.binderBooks = [];
-        }
-
-        document.querySelectorAll("section.binder-chapter").forEach(section => {
-            section.remove();
-        });
-	}
-
 	async onload() {
 		await this.loadSettings();
 
@@ -66,6 +47,25 @@ export default class BinderPlugin extends Plugin {
 		);
 	}
 
+	cleanBinder() {
+		if (this.binderObservers) {
+			this.binderObservers.forEach(observer => {
+				observer.disconnect();
+			});
+			this.binderObservers = [];
+		}
+		if (this.binderBooks) {
+			this.binderBooks.forEach(book => {
+				book.destroy();
+			});
+			this.binderBooks = [];
+		}
+
+		document.querySelectorAll("section.binder-chapter").forEach(section => {
+			section.remove();
+		});
+	}
+
 	createMatterIcon(subMenu: Menu, file: TFolder, matters: Matter[]) {
 		for (const { title, yaml } of matters) {
 			subMenu.addItem((subItem) => {
@@ -73,7 +73,7 @@ export default class BinderPlugin extends Plugin {
 					.setTitle(title)
 					.setIcon("file")
 					.onClick(async () => {
-						const fileName = `000 ${title}.md`;
+						const fileName = `_binder ${title}.md`;
 						const filePath = file.path + "/" + fileName;
 
 						if (this.app.vault.getFileByPath(filePath)) {
