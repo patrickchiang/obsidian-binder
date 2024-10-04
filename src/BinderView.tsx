@@ -7,7 +7,7 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import Epub, { Metadata, Resource, Section } from 'nodepub';
 import numWords from 'num-words';
-import { FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TAbstractFile, TFile, TFolder, WorkspaceLeaf, requestUrl } from 'obsidian';
+import { FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TFile, TFolder, WorkspaceLeaf, requestUrl } from 'obsidian';
 import path from 'path';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -64,7 +64,7 @@ export const defaultStyle: BookStyle = {
 }
 
 export class BinderIntegrationView extends ItemView {
-    folder: TAbstractFile;
+    folder: TFolder;
     plugin: BinderPlugin;
     reactRoot: ReturnType<typeof createRoot> | null = null;
 
@@ -108,7 +108,7 @@ export class BinderIntegrationView extends ItemView {
         );
     }
 
-    startRender(folder: TAbstractFile) {
+    startRender(folder: TFolder) {
         this.folder = folder;
         this.leaf.updateHeader();
 
@@ -272,7 +272,11 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                 data.chapters.every(chapter => files.some(file => file.path === chapter.file))) {
                 // Chapters are intact
                 chapters = data.chapters.map((chapter: BookStoredChapter) => {
-                    const file = files.find(file => file.path === chapter.file) as TFile;
+                    const file = files.find(file => file.path === chapter.file);
+                    if (!file) {
+                        // should never happen due to the check above
+                        throw new Error(`File not found: ${chapter.file}`);
+                    }
                     return {
                         title: chapter.title,
                         file: file,

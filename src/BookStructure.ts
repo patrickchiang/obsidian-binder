@@ -1,4 +1,4 @@
-import { App, TAbstractFile, TFile } from "obsidian";
+import { App, TFile, TFolder } from "obsidian";
 import BinderPlugin from "./main.js";
 
 export interface BookChapter {
@@ -29,7 +29,7 @@ export interface BookData {
 }
 
 export interface BinderModalProps {
-    folder: TAbstractFile;
+    folder: TFolder;
     app: App;
     plugin: BinderPlugin;
 }
