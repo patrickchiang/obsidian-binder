@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-binder",
 	"version": "1.0.0",
-	"description": "Bind and export Obsidian files to a professional ebook PDF for export or printing.",
+	"description": " Obsidian plugin that allows users to turn their files into a eBooks.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",

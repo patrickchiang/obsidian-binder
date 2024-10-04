@@ -3,7 +3,7 @@
 	"name": "Binder",
 	"version": "1.0.0",
 	"minAppVersion": "1.6.2",
-	"description": "Bind and export Obsidian files to a professional ebook PDF for export or printing.",
+	"description": "Allows users to turn their files into professional-quality eBooks",
 	"author": "patrickchiang",
 	"authorUrl": "https://github.com/patrickchiang",
 	"isDesktopOnly": true
