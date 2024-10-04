@@ -10,8 +10,8 @@ export const timberTheme = `
 .chapter-title {
     text-align: center;
     font-size: 1.5rem;
-    margin-top: 0;
-    margin-bottom: 3rem;
+    margin-top: 0.5em;
+    margin-bottom: 6rem;
 }
 
 .chapter-word {

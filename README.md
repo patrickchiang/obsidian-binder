@@ -6,6 +6,17 @@ Obsidian Binder is an Obsidian plugin that allows users to effortlessly turn the
 
 The primary format is ePub 3.0, targeted for export to the Amazon Kindle store.
 
+## Table of Contents
+
+* [Usage](#usage)
+   + [Binding](#binding)
+   + [Rearrange Chapters](#rearrange-chapters)
+   + [Templates](#templates)
+   + [Customize Styling (Advanced CSS)](#customize-styling-advanced-css)
+   + [Accessibility](#accessibility)
+* [Installing](#installing)
+* [Development](#development)
+
 ## Usage
 
 ### Binding

@@ -1,11 +1,10 @@
 {
-	"id": "obsidian-binder",
-	"name": "Obsidian Binder",
+	"id": "binder",
+	"name": "Binder",
 	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
+	"minAppVersion": "1.6.2",
 	"description": "Bind and export Obsidian files to a professional ebook PDF for export or printing.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"author": "patrickchiang",
+	"authorUrl": "https://github.com/patrickchiang",
 	"isDesktopOnly": true
 }

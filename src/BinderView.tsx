@@ -19,7 +19,7 @@ import { BookStyle, makeStylesheet } from './Bookstyle.js';
 import HelperTooltip from './HelperTooltip.js';
 import LanguageSelect from './LanguageSelect.js';
 import PreviewColorSelect from './PreviewColorSelect.js';
-import StyleOverrideSelect, { calculateStyleOverrides, dropcaps, horizontalRules, indents } from './StyleOverrideSelect.js';
+import StyleOverrideSelect, { calculateStyleOverrides, dropcaps, horizontalRules, indents, styleOverrideDefaults, toc, tocBm, tocFm } from './StyleOverrideSelect.js';
 import ThemeSelect, { getStyleForTheme } from './ThemeSelect.js';
 import { backmatters, convertToPage, frontmatters } from './templates/bookmatter.js';
 
@@ -237,7 +237,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             tocTitle: '',
             startReading: true,
             theme: 'apex',
-            components: ['_dropcap1', '_hr1', '_indent1']
+            components: ['_dropcap1', '_hrAsterisks3', '_indent1', ...styleOverrideDefaults]
         };
 
         const defaultValueChapters = files.map(file => ({
@@ -492,7 +492,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         updateMetadata('components', newComponents);
     }, [updateMetadata]);
 
-    const [previewColorScheme, setPreviewColorScheme] = useState("sepia");
+    const [previewColorScheme, setPreviewColorScheme] = useState("dark");
 
     const [bookLocation, setBookLocation] = useState<string | undefined>('');
     const [bookLoading, setBookLoading] = useState<boolean>(false);
@@ -1098,8 +1098,6 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         return epub;
     };
 
-    const [readingProgress, setReadingProgress] = useState<number>(-1);
-
     const previewPub = async (url?: string) => {
         setBookLoading(true);
 
@@ -1220,12 +1218,6 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             setBookLoading(false);
         });
 
-        book.ready.then(async () => {
-            setReadingProgress(-1);
-            await book.locations.generate(1024);
-            calculateBookProgress(book, bookRendition.location.start.cfi);
-        });
-
         type Relocation = {
             start: {
                 cfi: string;
@@ -1233,16 +1225,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         };
         bookRendition.on('relocated', (location: Relocation) => {
             setBookLocation(location.start.cfi);
-            calculateBookProgress(book, location.start.cfi);
         });
-    };
-
-    const calculateBookProgress = async (book: ePub.Book, cfi: string) => {
-        const percentage = book.locations.percentageFromCfi(cfi);
-        const displayPercent = Math.round(percentage * 100);
-        if (percentage || percentage === 0) {
-            setReadingProgress(displayPercent);
-        }
     };
 
     const previouPage = async () => {
@@ -1276,8 +1259,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             <div className='binder-container'>
                 <div className="ebook-preview">
                     <div className="phone-frame">
-                        <div className="reading-progress">
-                            Preview ({readingProgress === -1 ? "Loading..." : `${readingProgress}%`})
+                        <div className="preview-title">
+                            Preview
                         </div>
                         <div className="phone-toolbar">
                             <button onClick={previouPage} className="toolbar-button" aria-label="Go back one page">🠜</button>
@@ -1297,7 +1280,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </HelperTooltip>
                     </h2>
 
-                    <div>
+                    <div className='lineup-helper'>
                         <div className='metadata-label'>
                             <label>Theme</label>
                             <HelperTooltip>
@@ -1312,13 +1295,13 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         <span onClick={() => setStyleOverrideCollapsed(!styleOverrideCollapsed)} className="collapse-metadata-header">
                             <span className="collapse-metadata-icon">{styleOverrideCollapsed ? '▶' : '▼'}</span> Style Overrides
                             <HelperTooltip>
-                                Optional fields for handing table of contents.
+                                Override the default styling for the book.
                             </HelperTooltip>
                         </span>
                     </h3>
 
                     <div className={styleOverrideCollapsed ? 'section-collapsed' : ''}>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label>Dropcaps</label>
                                 <HelperTooltip>
@@ -1329,7 +1312,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={dropcaps} />
                         </div>
 
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label>Horizontal Rule</label>
                                 <HelperTooltip>
@@ -1340,7 +1323,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={horizontalRules} />
                         </div>
 
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label>Indents</label>
                                 <HelperTooltip>
@@ -1362,7 +1345,21 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     </h3>
 
                     <div className={tocOptionsCollapsed ? 'section-collapsed' : ''}>
-                        <div>
+                        <div className='lineup-helper'>
+                            <div className='metadata-label'>
+                                <label htmlFor="showContents">Show Table of Contents</label>
+                                <HelperTooltip>
+                                    Show the table of contents in the book. Default: true. Uncheck to hide the table of contents.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="checkbox"
+                                id="showContents"
+                                checked={metadata.showContents}
+                                onChange={handleCheckedChange}
+                            />
+                        </div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="tocTitle">Table of Contents</label>
                                 <HelperTooltip>
@@ -1377,21 +1374,34 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleTextInputChange}
                             />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
-                                <label htmlFor="showContents">Show Table of Contents</label>
+                                <label>TOC Styling</label>
                                 <HelperTooltip>
-                                    Show the table of contents in the book. Default: true. Uncheck to hide the table of contents.
+                                    Styling for the table of contents.
                                 </HelperTooltip>
                             </div>
-                            <input
-                                type="checkbox"
-                                id="showContents"
-                                checked={metadata.showContents}
-                                onChange={handleCheckedChange}
-                            />
+                            <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={toc} />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
+                            <div className='metadata-label'>
+                                <label>Frontmatter</label>
+                                <HelperTooltip>
+                                    Styling for the table of contents frontmatter.
+                                </HelperTooltip>
+                            </div>
+                            <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={tocFm} />
+                        </div>
+                        <div className='lineup-helper'>
+                            <div className='metadata-label'>
+                                <label>Backmatter</label>
+                                <HelperTooltip>
+                                    Styling for the table of contents backmatter.
+                                </HelperTooltip>
+                            </div>
+                            <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={tocBm} />
+                        </div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="startReading">Start Reading After</label>
                                 <HelperTooltip>
@@ -1415,7 +1425,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             All fields in this section are required.
                         </HelperTooltip>
                     </h2>
-                    <div>
+                    <div className='lineup-helper'>
                         <div className='metadata-label'>
                             <label htmlFor="title">Title</label>
                             <HelperTooltip>
@@ -1431,7 +1441,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             onChange={handleTextInputChange}
                         />
                     </div>
-                    <div>
+                    <div className='lineup-helper'>
                         <div className='metadata-label'>
                             <label htmlFor="author">Author</label>
                             <HelperTooltip>
@@ -1447,7 +1457,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             onChange={handleTextInputChange}
                         />
                     </div>
-                    <div>
+                    <div className='lineup-helper'>
                         <div className='metadata-label'>
                             <label htmlFor="language">Language</label>
                             <HelperTooltip>
@@ -1458,7 +1468,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         <LanguageSelect value={metadata.language} onChange={handleLanguageChange} />
                     </div>
 
-                    <div>
+                    <div className='lineup-helper'>
                         <div className='metadata-label'>
                             <label htmlFor="cover">Cover Image</label>
                             <HelperTooltip>
@@ -1476,15 +1486,14 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         <button className="select-cover" onClick={() => document.getElementById('cover')?.click()}>
                             {metadata.cover ? 'file: ' + path.basename(metadata.cover) : 'Select Cover Image'}
                         </button>
-
-                        {metadata.cover && (
-                            <div className="select-cover-text">
-                                <img src={
-                                    `data:image/jpeg;base64,${fs.readFileSync(metadata.cover).toString('base64')}`
-                                } className="cover-preview"></img>
-                            </div>
-                        )}
                     </div>
+                    {metadata.cover && (
+                        <div className="select-cover-text">
+                            <img src={
+                                `data:image/jpeg;base64,${fs.readFileSync(metadata.cover).toString('base64')}`
+                            } className="cover-preview"></img>
+                        </div>
+                    )}
                 </div>
                 <div className="optional-section modal-content">
                     <h2 className='lineup-helper'>
@@ -1497,7 +1506,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     </h2>
 
                     <div className={optionalMetadataCollapsed ? 'section-collapsed' : ''}>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="identifier">Identifier</label>
                                 <HelperTooltip>
@@ -1513,7 +1522,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleTextInputChange}
                             />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="description">Description</label>
                                 <HelperTooltip>
@@ -1529,7 +1538,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleTextInputChange}
                             />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="series">Series</label>
                                 <HelperTooltip>
@@ -1544,7 +1553,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleTextInputChange}
                             />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="sequence">Sequence</label>
                                 <HelperTooltip>
@@ -1559,7 +1568,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleNumberChange}
                             />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="fileAs">File As</label>
                                 <HelperTooltip>
@@ -1574,7 +1583,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleTextInputChange}
                             />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="genre">Genre</label>
                                 <HelperTooltip>
@@ -1589,7 +1598,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleTextInputChange}
                             />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="tags">Tags</label>
                                 <HelperTooltip>
@@ -1604,7 +1613,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleTextInputChange}
                             />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="copyright">Copyright</label>
                                 <HelperTooltip>
@@ -1619,7 +1628,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleTextInputChange}
                             />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="publisher">Publisher</label>
                                 <HelperTooltip>
@@ -1634,7 +1643,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleTextInputChange}
                             />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="published">Published</label>
                                 <HelperTooltip>
@@ -1649,7 +1658,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                 onChange={handleTextInputChange}
                             />
                         </div>
-                        <div>
+                        <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label htmlFor="transcriptionSource">Transcription Source</label>
                                 <HelperTooltip>
@@ -1670,7 +1679,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             <div className="bulk-actions">
                 <h2>Contents</h2>
 
-                <p className='lineup-helper'>
+                <p>
                     <span onClick={() => setUtilitiesCollapsed(!utilitiesCollapsed)} className="collapse-metadata-header">
                         <span className="collapse-metadata-icon">{utilitiesCollapsed ? '▶' : '▼'}</span> Utilities
                     </span>

@@ -12,20 +12,18 @@ p {
     line-height: 1.5em;
 }
 
-section.frontmatter {
-    text-align: center;
+h1 {
+    font-size: 120%;
+    font-weight: bold;
+}
+
+h2 {
+    font-size: 110%;
+    font-weight: normal;
 }
 
 span.frontmatter {
     display: none;
-}
-
-li.frontmatter {
-    margin-bottom: 1em;
-}
-
-li.backmatter {
-    margin-top: 1em;
 }
 
 span.backmatter {
@@ -172,7 +170,6 @@ span.backmatter {
     height: 3em;
     width: 3em;
     display: inline-block;
-    // border: blue 3px solid;
     padding: 0.5em;
     border-radius: 50%;
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { apexTheme } from './themes/apex.js';
 import { monoTheme } from './themes/mono.js';
 import { timberTheme } from './themes/timber.js';
+import { styleOverrideDefaults } from './StyleOverrideSelect.js';
 
 interface Theme {
     name: string;
@@ -15,19 +16,19 @@ const themes: Theme[] = [
         name: 'Apex',
         identifier: 'apex',
         style: apexTheme,
-        components: ['_dropcap1', '_hr1', '_indent1']
+        components: ['_dropcap1', '_hrAsterisks3', '_indent1', ...styleOverrideDefaults]
     },
     {
         name: 'Mono',
         identifier: 'mono',
         style: monoTheme,
-        components: ['_hr1']
+        components: ['_hr1', ...styleOverrideDefaults]
     },
     {
         name: 'Timber',
         identifier: 'timber',
         style: timberTheme,
-        components: ['_dropcap1', '_hr1', '_indent1']
+        components: ['_dropcap1', '_hrAsterisks3', '_indent1', ...styleOverrideDefaults]
     },
 ];
 

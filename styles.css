@@ -71,7 +71,7 @@ h1.title {
 
 .modal-content {
     flex: 0 0 400px;
-    margin: 3em auto 0;
+    margin: 2em;
 }
 
 .ebook-preview {
@@ -115,8 +115,10 @@ h1.title {
     text-align: center;
 }
 
-.reading-progress {
+.preview-title {
     line-height: 60px;
+    font-weight: bold;
+    font-size: 150%;
 }
 
 #ebook-preview-render {
@@ -222,15 +224,17 @@ h1.title {
     align-items: center;
 }
 
+.lineup-helper input,
+.lineup-helper select {
+    margin: 1em;
+}
+
 .metadata-label {
     min-width: 12em;
 }
 
 .appearance-section input[type='checkbox'] {
     transform: scale(1.2);
-    margin-left: 1em;
-    margin-top: 1em;
-    margin-bottom: 1em;
     vertical-align: middle;
 }
 
@@ -251,6 +255,11 @@ h1.title {
     display: none;
 }
 
+.bulk-actions {
+    margin: 2em;
+    text-align: center;
+}
+
 .bulk-actions button {
     margin-bottom: 0.5em;
     margin-right: 0.5em;
@@ -267,12 +276,20 @@ h1.title {
     border: 1px solid #2a2a2a;
     background-color: #2a2a2a;
     padding: 0.4em;
-    width: 100%;
+    display: inline-block;
+}
+
+.chapter-title {
+    max-width: 150px;
+}
+
+.chapter-controls {
+    display: inline-block;
+    margin-left: 1em;
 }
 
 .select-cover {
-    margin-left: 1em;
-    margin-bottom: 1em;
+    margin: 1em;
 }
 
 .select-cover-text {
@@ -281,6 +298,10 @@ h1.title {
 
 .upload-file {
     display: none;
+}
+
+section.binder-chapter {
+    overflow: hidden;
 }
 
 .hidden {
