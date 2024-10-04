@@ -1275,7 +1275,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         <div id="ebook-preview-render"></div>
                     </div>
                 </div>
-                <div className="appearance-section modal-content">
+                <div className="appearance-section binder-section-content">
                     <h2 className='lineup-helper'>
                         Appearance
                         <HelperTooltip>
@@ -1432,7 +1432,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     </div>
                 </div>
 
-                <div className="metadata-section modal-content">
+                <div className="metadata-section binder-section-content">
                     <h2 className='lineup-helper'>
                         Metadata (Required)
                         <HelperTooltip>
@@ -1509,7 +1509,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </div>
                     )}
                 </div>
-                <div className="optional-section modal-content">
+                <div className="optional-section binder-section-content">
                     <h2 className='lineup-helper'>
                         <span onClick={() => setOptionalMetadataCollapsed(!optionalMetadataCollapsed)} className="collapse-metadata-header">
                             <span className="collapse-metadata-icon">{optionalMetadataCollapsed ? '▶' : '▼'}</span> Optional Metadata
