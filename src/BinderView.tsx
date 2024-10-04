@@ -19,7 +19,7 @@ import { BookStyle, makeStylesheet } from './Bookstyle.js';
 import HelperTooltip from './HelperTooltip.js';
 import LanguageSelect from './LanguageSelect.js';
 import PreviewColorSelect from './PreviewColorSelect.js';
-import StyleOverrideSelect, { calculateStyleOverrides, dropcaps, horizontalRules, indents, styleOverrideDefaults, toc, tocBm, tocFm } from './StyleOverrideSelect.js';
+import StyleOverrideSelect, { calculateStyleOverrides, chapterHeadingAlignment, dropcaps, horizontalRules, indents, styleOverrideDefaults, toc, tocBm, tocFm } from './StyleOverrideSelect.js';
 import ThemeSelect, { getStyleForTheme } from './ThemeSelect.js';
 import { backmatters, convertToPage, frontmatters } from './templates/bookmatter.js';
 
@@ -749,7 +749,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
         if (!chapter.isFrontMatter && !chapter.isBackMatter) {
             const chapterHeader = (
-                <>
+                <div className="chapter-heading">
                     <h1 className="chapter-number">
                         <span className="chapter-word">Chapter </span>
                         <span className="chapter-number-numeric">{chapterNumber}</span>
@@ -757,9 +757,8 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             {capitalize(numWords(chapterNumber))}
                         </span>
                     </h1>
-                    <div className="chapter-title-divider"></div>
                     <h1 className="chapter-title">{chapterName}</h1>
-                </>
+                </div>
             );
             section.insertAdjacentHTML('beforeend', renderToStaticMarkup(chapterHeader));
         }
@@ -1152,7 +1151,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                 }
 
                 html {
-                    font-family: "Georgia", "Palatino Linotype", sans-serif;
+                    font-family: "Arial", "Georgia", "Palatino Linotype", sans-serif;
                 }
             `;
 
@@ -1301,6 +1300,17 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     </h3>
 
                     <div className={styleOverrideCollapsed ? 'section-collapsed' : ''}>
+                        <div className='lineup-helper'>
+                            <div className='metadata-label'>
+                                <label>Heading Style</label>
+                                <HelperTooltip>
+                                    Alignment for chapter headings.
+                                </HelperTooltip>
+                            </div>
+
+                            <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={chapterHeadingAlignment} />
+                        </div>
+
                         <div className='lineup-helper'>
                             <div className='metadata-label'>
                                 <label>Dropcaps</label>

@@ -1,9 +1,13 @@
 export const apexTheme = `
 .chapter-number {
-    text-align: center;
     margin-top: 7rem;
     margin-bottom: 0;
     font-size: 1.5rem;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    display: inline-block;
+    padding: 0 0.7em 0.5em;
+    margin-bottom: 5rem;
 }
 
 .chapter-title {
@@ -16,13 +20,5 @@ export const apexTheme = `
 
 .chapter-number-text {
     display: none;
-}
-
-.chapter-title-divider {
-    border-top: 1px solid #000;
-    margin-top: 0.7rem;
-    margin-bottom: 6rem;
-    margin-left: 40%;
-    margin-right: 40%;
 }
 `;

@@ -11,9 +11,9 @@ const HelperTooltip: React.FC<HelperTooltipProps> = ({ children }) => {
     const [iconSize, setIconSize] = useState<number | undefined>(undefined);
 
     useEffect(() => {
-        if (spanRef.current) {
-            const computedStyle = window.getComputedStyle(spanRef.current);
-            const lineHeight = computedStyle.lineHeight;
+        if (spanRef.current && spanRef.current.parentElement) {
+            const computedStyle = window.getComputedStyle(spanRef.current.parentElement);
+            const lineHeight = computedStyle.fontSize;
             const parsedLineHeight = parseFloat(lineHeight);
             setIconSize(parsedLineHeight || undefined);
         }

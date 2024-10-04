@@ -1,6 +1,5 @@
 export const timberTheme = `
 .chapter-number{
-    text-align: center;
     margin-top: 1rem;
     margin-bottom: 0;
     font-size: 4rem;
@@ -8,7 +7,6 @@ export const timberTheme = `
 }
 
 .chapter-title {
-    text-align: center;
     font-size: 1.5rem;
     margin-top: 0.5em;
     margin-bottom: 6rem;

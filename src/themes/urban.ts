@@ -1,14 +1,11 @@
-export const monoTheme = `
-body {
-    font-family: monospace;
-}
-
+export const urbanTheme = `
 .chapter-word {
     text-transform: uppercase;
-    font-size: 100%;
+    font-size: 130%;
 }
 
 .chapter-number-numeric {
+    font-size: 130%;
 }
 
 .chapter-number-text {
@@ -18,13 +15,15 @@ body {
 .chapter-number {
     margin-top: 3rem;
     margin-bottom: 0;
-    font-size: 120%;
+    font-size: 1.5rem;
 }
 
 .chapter-title {
     text-transform: uppercase;
-    font-size: 120%;
-    margin-bottom: 6rem;
+    font-size: 180%;
+    margin-bottom: 1rem;
     margin-top: 0.3rem;
+    border-bottom: 1px solid;
+    padding-bottom: 3rem;
 }
 `;

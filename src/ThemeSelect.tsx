@@ -3,6 +3,10 @@ import { apexTheme } from './themes/apex.js';
 import { monoTheme } from './themes/mono.js';
 import { timberTheme } from './themes/timber.js';
 import { styleOverrideDefaults } from './StyleOverrideSelect.js';
+import { cedarTheme } from './themes/cedar.js';
+import { waferTheme } from './themes/wafer.js';
+import { urbanTheme } from './themes/urban.js';
+import { blockTheme } from './themes/block.js';
 
 interface Theme {
     name: string;
@@ -16,19 +20,43 @@ const themes: Theme[] = [
         name: 'Apex',
         identifier: 'apex',
         style: apexTheme,
-        components: ['_dropcap1', '_hrAsterisks3', '_indent1', ...styleOverrideDefaults]
+        components: ['_dropcap1', '_hrThick80', '_indent1', ...styleOverrideDefaults]
+    },
+    {
+        name: 'Block',
+        identifier: 'block',
+        style: blockTheme,
+        components: ['_dropcap3', '_hrThin', ...styleOverrideDefaults]
+    },
+    {
+        name: 'Cedar',
+        identifier: 'cedar',
+        style: cedarTheme,
+        components: ['_dropcap3', '_hrThick80', '_indent1', ...styleOverrideDefaults]
     },
     {
         name: 'Mono',
         identifier: 'mono',
         style: monoTheme,
-        components: ['_hr1', ...styleOverrideDefaults]
+        components: ['_hrAsterisks3', ...styleOverrideDefaults]
     },
     {
         name: 'Timber',
         identifier: 'timber',
         style: timberTheme,
-        components: ['_dropcap1', '_hrAsterisks3', '_indent1', ...styleOverrideDefaults]
+        components: ['_dropcap3', '_hrDotted50', '_indent1', ...styleOverrideDefaults]
+    },
+    {
+        name: 'Urban',
+        identifier: 'urban',
+        style: urbanTheme,
+        components: ['_hrThick30', '_indent1', ...styleOverrideDefaults]
+    },
+    {
+        name: 'Wafer',
+        identifier: 'wafer',
+        style: waferTheme,
+        components: ['_dropcap2', '_hrThin30', '_indent1', ...styleOverrideDefaults]
     },
 ];
 

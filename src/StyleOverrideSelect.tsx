@@ -15,10 +15,6 @@ import {
     _hrGroove30,
     _hrGroove50,
     _hrGroove80,
-    _hrRidge,
-    _hrRidge30,
-    _hrRidge50,
-    _hrRidge80,
     _hrThick,
     _hrThick30,
     _hrThick50,
@@ -32,6 +28,7 @@ import { _indent1, _indent2 } from './themes/components/indent.js';
 import { _toc1, _toc2, _toc3 } from './themes/components/toc.js';
 import { _tocBmShow, _tocBmHide } from './themes/components/toc-bm.js';
 import { _tocFmShow, _tocFmHide } from './themes/components/toc-fm.js';
+import { _chapterHeadingCenter, _chapterHeadingLeft, _chapterHeadingRight } from './themes/components/chapter-heading.js';
 
 interface StyleOverride {
     name: string;
@@ -114,26 +111,25 @@ export const horizontalRules: StyleOverride[] = [
         style: _hrThick30
     },
     {
-        name: 'Dotted Line',
+        name: 'Dots',
         identifier: '_hrDotted',
         style: _hrDotted
     },
     {
-        name: 'Dotted Line 80%',
+        name: 'Dots 80%',
         identifier: '_hrDotted80',
         style: _hrDotted80
     },
     {
-        name: 'Dotted Line 50%',
+        name: 'Dots 50%',
         identifier: '_hrDotted50',
         style: _hrDotted50
     },
     {
-        name: 'Dotted Line 30%',
+        name: 'Dots 30%',
         identifier: '_hrDotted30',
         style: _hrDotted30
     },
-    // Grooved Line 100/80/50/30, Double..., Ridge...
     {
         name: 'Grooved Line',
         identifier: '_hrGroove',
@@ -173,27 +169,7 @@ export const horizontalRules: StyleOverride[] = [
         name: 'Double Line 30%',
         identifier: '_hrDouble30',
         style: _hrDouble30
-    },
-    {
-        name: 'Ridge Line',
-        identifier: '_hrRidge',
-        style: _hrRidge
-    },
-    {
-        name: 'Ridge Line 80%',
-        identifier: '_hrRidge80',
-        style: _hrRidge80
-    },
-    {
-        name: 'Ridge Line 50%',
-        identifier: '+hrRidge50',
-        style: _hrRidge50
-    },
-    {
-        name: 'Ridge Line 30%',
-        identifier: '_hrRidge30',
-        style: _hrRidge30
-    },
+    }
 ];
 
 export const indents: StyleOverride[] = [
@@ -211,6 +187,24 @@ export const indents: StyleOverride[] = [
         name: 'Indent All',
         identifier: '_indent2',
         style: _indent2
+    }
+];
+
+export const chapterHeadingAlignment: StyleOverride[] = [
+    {
+        name: 'Centered',
+        identifier: '_chapterHeadingCenter',
+        style: _chapterHeadingCenter
+    },
+    {
+        name: 'Left Aligned',
+        identifier: '_chapterHeadingLeft',
+        style: _chapterHeadingLeft
+    },
+    {
+        name: 'Right Aligned',
+        identifier: '_chapterHeadingRight',
+        style: _chapterHeadingRight
     }
 ];
 
@@ -258,8 +252,8 @@ export const tocBm: StyleOverride[] = [
     }
 ];
 
-export const styleOverrideDefaults = ['_toc1', '_tocBmShow', '_tocFmShow'];
-const allStyleOverrides = [...dropcaps, ...horizontalRules, ...indents, ...toc, ...tocFm, ...tocBm];
+export const styleOverrideDefaults = ['_chapterHeadingCenter', '_toc1', '_tocBmShow', '_tocFmShow'];
+const allStyleOverrides = [...dropcaps, ...horizontalRules, ...indents, ...chapterHeadingAlignment, ...toc, ...tocFm, ...tocBm];
 
 export const calculateStyleOverrides = (components: string[]): string => {
     return _all + components.reduce((acc, component) => {

@@ -1,6 +1,7 @@
 export const _all = `
-body {
+html {
     word-wrap: break-word;
+    font-family: sans-serif;
 }
 
 p {
