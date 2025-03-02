@@ -203,7 +203,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         return markdownFiles.sort((a, b) => naturalSort(a.basename, b.basename));
     }
 
-    const files = getFilesInFolder(folder as TFolder);
+    const files = getFilesInFolder(folder);
 
     const isDefaultFrontMatter = (file: TFile) => {
         return frontmatters.some(bookmatter => file.basename === `_binder ${bookmatter.title}`);
