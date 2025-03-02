@@ -1,4 +1,4 @@
-import jsYaml from "js-yaml";
+import { parseYaml } from "obsidian";
 import pug from "pug";
 import {
     aboutAuthorTemplate,
@@ -62,7 +62,7 @@ const extractBookmatter = (mdContent: string) => {
 
 export const convertToPage = (input: string): Page => {
     const firstStage = extractBookmatter(input);
-    const secondStage = jsYaml.load(firstStage.bookmatter) as Record<string, string>;
+    const secondStage = parseYaml(firstStage.bookmatter) as Record<string, string>;
     const response: Page = {};
     for (const [key, value] of Object.entries(secondStage)) {
         const splitKey = key.split(" ");
@@ -243,6 +243,7 @@ About Author 3:
 Link To Amazon: https://www.amazon.com/author/authorname
 Link To Apple:
 Link To Audible:
+Link to Discord:
 Link To Facebook:
 Link To Patreon:
 Link To Royal Road:

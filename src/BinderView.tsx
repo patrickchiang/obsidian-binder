@@ -1,13 +1,12 @@
 import { icon } from '@fortawesome/fontawesome-svg-core';
-import { faAmazon, faApple, faAudible, faFacebook, faPatreon, faTwitter } from '@fortawesome/free-brands-svg-icons';
+import { faAmazon, faApple, faAudible, faDiscord, faFacebook, faPatreon, faTwitter } from '@fortawesome/free-brands-svg-icons';
 import { faCrown, faGlobe } from '@fortawesome/free-solid-svg-icons';
 import { DragDropContext, Draggable, DraggingStyle, DropResult, Droppable } from '@hello-pangea/dnd';
 import ePub from 'epubjs';
 import fs from 'fs';
-import yaml from 'js-yaml';
 import Epub, { Metadata, Resource, Section } from 'nodepub';
 import numWords from 'num-words';
-import { FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TFile, TFolder, WorkspaceLeaf, requestUrl } from 'obsidian';
+import { Component, FileSystemAdapter, ItemView, LocalFile, MarkdownRenderer, Notice, TFile, TFolder, WorkspaceLeaf, parseYaml, requestUrl, stringifyYaml } from 'obsidian';
 import path from 'path';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -22,6 +21,8 @@ import PreviewColorSelect from './PreviewColorSelect.js';
 import StyleOverrideSelect, { calculateStyleOverrides, chapterHeadingAlignment, dropcaps, horizontalRules, indents, styleOverrideDefaults, toc, tocBm, tocFm } from './StyleOverrideSelect.js';
 import ThemeSelect, { getStyleForTheme } from './ThemeSelect.js';
 import { backmatters, convertToPage, frontmatters } from './templates/bookmatter.js';
+
+import * as pagedjs from './dependencies/paged.load.js';
 
 import BinderPlugin from './main.js';
 
@@ -50,11 +51,15 @@ interface EpubMetadata extends BookMetadata {
 }
 
 export const defaultStyle: BookStyle = {
-    width: "5in",
-    height: "8in",
+    width: "6in",
+    height: "9in",
 
-    insideMargin: "0.875in",
-    outsideMargin: "0.25in",
+    // insideMargin: "0.625in",
+    // outsideMargin: "0.375in",
+    // verticalMargin: "0.2in",
+
+    insideMargin: "0.5in",
+    outsideMargin: "0.5in",
     verticalMargin: "0.5in",
 
     fontSize: "12px",
@@ -101,7 +106,7 @@ export class BinderIntegrationView extends ItemView {
         this.reactRoot = createRoot(reactContainer);
         this.reactRoot.render(
             <div>
-                <h1>Obsidian Binder</h1>
+                <h1>Binder</h1>
                 <p>Open a folder to start creating your book.</p>
                 <p>Right click on a folder &gt; Binder</p>
             </div>
@@ -174,7 +179,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             }))
         };
 
-        const yamlStr = yaml.dump(data);
+        const yamlStr = stringifyYaml(data);
         const filePath = getYamlPath();
         fs.writeFileSync(filePath, yamlStr, 'utf8');
     };
@@ -265,7 +270,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             }
 
             const yamlStr = fs.readFileSync(filePath, 'utf8');
-            const data = yaml.load(yamlStr) as BookData;
+            const data = parseYaml(yamlStr) as BookData;
 
             let chapters: BookChapter[];
             if (data.chapters.length === files.length &&
@@ -640,9 +645,9 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                         disabled={!chapter.include}
                                     />
                                     <label htmlFor={`is-front-matter-${index}`}>
-                                        <span>Front matter</span>
+                                        <span>Frontmatter</span>
                                         <HelperTooltip>
-                                            This section is front matter content. Will appear in your book ahead of the contents page.
+                                            This section is frontmatter content. Will appear in your book ahead of the contents page.
                                             Mostly used for copyright, dedication pages.
                                         </HelperTooltip>
                                     </label>
@@ -655,9 +660,9 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                                         disabled={!chapter.include}
                                     />
                                     <label htmlFor={`is-back-matter-${index}`}>
-                                        <span>Back matter</span>
+                                        <span>Backmatter</span>
                                         <HelperTooltip>
-                                            This section is back matter content. Mostly used for indice, about the author pages...etc.
+                                            This section is backmatter content. Mostly used for indice, about the author pages...etc.
                                         </HelperTooltip>
                                     </label>
                                 </div>
@@ -702,74 +707,18 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         return s.charAt(0).toUpperCase() + s.slice(1);
     };
 
-    const makeHTML = async (markdown: string, chapter: BookChapter, chapterNumber: number) => {
-        const chapterName = chapter.title;
-        const filePath = chapter.file.path;
-
-        const storeLinkers = {
-            "Amazon": icon(faAmazon).html[0],
-            "Apple": icon(faApple).html[0],
-            "Audible": icon(faAudible).html[0],
-            "Facebook": icon(faFacebook).html[0],
-            "Patreon": icon(faPatreon).html[0],
-            "Royal Road": icon(faCrown).html[0],
-            "Twitter": icon(faTwitter).html[0],
-            "Website": icon(faGlobe).html[0]
-        };
-
-        const bookmatters = frontmatters.concat(backmatters);
-        for (const bookmatter of bookmatters) {
-            if (chapterName === `_binder ${bookmatter.title}`) {
-                const page = convertToPage(markdown);
-
-                const bodyResponse = page["Body"];
-                let tempPortion = "";
-                if (bodyResponse && typeof bodyResponse === 'string') {
-                    const tempDom = document.createElement('div');
-                    await MarkdownRenderer.render(app, bodyResponse, tempDom, filePath, plugin);
-                    tempPortion = tempDom.innerHTML;
-                }
-
-                const sectionString = bookmatter.template({
-                    data: page,
-                    storeLinkers: storeLinkers,
-                    bodyText: tempPortion
-                });
-
-                const wrapper = document.createElement('section');
-                wrapper.innerHTML = sectionString;
-                return {
-                    section: wrapper,
-                    images: [],
-                    title: bookmatter.title,
-                    increment: false
-                };
-            }
+    const processHTML = async (markdown: string, chapter: BookChapter, section: HTMLElement, filePath: string) => {
+        const markdownRender = new Component();
+        try {
+            await MarkdownRenderer.render(app, markdown, section, filePath, markdownRender);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            markdownRender.unload();
         }
 
-        const section = document.createElement('section');
-        section.addClass('binder-chapter');
-        document.body.appendChild(section);
-
-        if (!chapter.isFrontMatter && !chapter.isBackMatter) {
-            const chapterHeader = (
-                <div className="chapter-heading">
-                    <h1 className="chapter-number">
-                        <span className="chapter-word">Chapter </span>
-                        <span className="chapter-number-numeric">{chapterNumber}</span>
-                        <span className="chapter-number-text">
-                            {capitalize(numWords(chapterNumber))}
-                        </span>
-                    </h1>
-                    <h1 className="chapter-title">{chapterName}</h1>
-                </div>
-            );
-            section.insertAdjacentHTML('beforeend', renderToStaticMarkup(chapterHeader));
-        }
-
-        await MarkdownRenderer.render(app, markdown, section, filePath, plugin);
         const firstParagraph = section.querySelector('p');
-        if (firstParagraph) {
+        if (firstParagraph?.textContent) {
             const paragraph = firstParagraph.textContent || "";
             const wordArray = paragraph.split(' ');
 
@@ -811,6 +760,76 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             );
             hr.outerHTML = renderToStaticMarkup(asterisk);
         });
+    };
+
+    const makeHTML = async (markdown: string, chapter: BookChapter, chapterNumber: number) => {
+        const chapterName = chapter.title;
+        const filePath = chapter.file.path;
+
+        const storeLinkers = {
+            "Amazon": icon(faAmazon).html[0],
+            "Apple": icon(faApple).html[0],
+            "Audible": icon(faAudible).html[0],
+            "Discord": icon(faDiscord).html[0],
+            "Facebook": icon(faFacebook).html[0],
+            "Patreon": icon(faPatreon).html[0],
+            "Royal Road": icon(faCrown).html[0],
+            "Twitter": icon(faTwitter).html[0],
+            "Website": icon(faGlobe).html[0]
+        };
+
+        const bookmatters = frontmatters.concat(backmatters);
+        for (const bookmatter of bookmatters) {
+            if (chapterName === `_binder ${bookmatter.title}`) {
+                const page = convertToPage(markdown);
+
+                const bodyResponse = page["Body"];
+                let tempPortion = "";
+                if (bodyResponse && typeof bodyResponse === 'string') {
+                    const tempDom = document.createElement('section');
+                    tempDom.addClass('binder-chapter');
+                    await processHTML(markdown, chapter, tempDom, filePath);
+                    tempPortion = tempDom.innerHTML;
+                }
+
+                const sectionString = bookmatter.template({
+                    data: page,
+                    storeLinkers: storeLinkers,
+                    bodyText: tempPortion
+                });
+
+                const wrapper = document.createElement('section');
+                wrapper.innerHTML = sectionString;
+                return {
+                    section: wrapper,
+                    images: [],
+                    title: bookmatter.title,
+                    increment: false
+                };
+            }
+        }
+
+        const section = document.createElement('section');
+        section.addClass('binder-chapter');
+        document.body.appendChild(section);
+
+        if (!chapter.isFrontMatter && !chapter.isBackMatter) {
+            const chapterHeader = (
+                <div className="chapter-heading">
+                    <h1 className="chapter-number">
+                        <span className="chapter-word">Chapter </span>
+                        <span className="chapter-number-numeric">{chapterNumber}</span>
+                        <span className="chapter-number-text">
+                            {capitalize(numWords(chapterNumber))}
+                        </span>
+                    </h1>
+                    <h1 className="chapter-title">{chapterName}</h1>
+                </div>
+            );
+            section.insertAdjacentHTML('beforeend', renderToStaticMarkup(chapterHeader));
+        }
+
+        await processHTML(markdown, chapter, section, filePath);
 
         let rollingStyle = "";
         Array.from(section.children).forEach(child => {
@@ -827,7 +846,9 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         const imageSources = Array.from(section.querySelectorAll('img')).map(async image => {
             const newImagePath = await processImage(image, section);
             const filename = path.basename(new URL(newImagePath).pathname);
-            const relativePath = '../resources/' + filename;
+            // hardcoded into the epub
+            const tempFolder = path.join("../resources", decodeURIComponent(filename));
+            const relativePath = tempFolder;
             // this gives a console GET error, that's normal
             image.src = relativePath;
             return newImagePath;
@@ -848,13 +869,17 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
         const tempPath = path.join(getBasePath(), folder.path, TEMP_SITE_NAME);
 
+        const scriptText = (pagedjs as unknown as { default: string }).default;
+
         // Create the HTML content
         const htmlContent = `
 				<!DOCTYPE html>
 				<html>
 				<head>
 					<title>Rendered Book</title>
-                    <script src="https://unpkg.com/pagedjs/dist/paged.js"></script>
+                    <script type="text/javascript">
+                        ${scriptText}
+                    </script>
 				</head>
 				<body>
 					${html}
@@ -897,6 +922,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             console.error(error);
                         }
 
+                        new Notice('PDF generation complete: ' + renderPath + '.');
                         win.destroy();
                     });
                 });
@@ -955,6 +981,18 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         const wrapper = document.createElement('template');
         wrapper.id = 'html';
 
+        const cover = document.createElement('section');
+        cover.addClass('binder-cover');
+        const coverImage = document.createElement('img');
+        coverImage.src = metadata.cover;
+        coverImage.setCssStyles({
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+        });
+        cover.appendChild(coverImage);
+        wrapper.content.appendChild(cover);
+
         let chapterNumberPdf = 1;
         for (const chapter of chapters) {
             if (!chapter.include) continue;
@@ -972,7 +1010,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
         }
 
         createWindowAndPrint(wrapper.outerHTML, filePath);
-        new Notice('PDF generated at: ' + filePath + '.');
+        new Notice('PDF being generated at: ' + filePath + '. Please wait...');
     };
 
     const createEpub = async () => {
@@ -1257,7 +1295,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             <h1 className='title'>Binder</h1>
             <div className='action-buttons'>
                 <button onClick={createEpub} className="mod-cta bind-to-ebook">Save eBook (.epub)</button>
-                <button onClick={createPdf} className="bind-to-pdf" disabled>Save print (.pdf) (WIP)</button>
+                <button onClick={createPdf} className="bind-to-pdf">Save print (.pdf) (WIP)</button>
             </div>
             <div className='binder-container'>
                 <div className="ebook-preview">
@@ -1296,7 +1334,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
                     <h3 className='lineup-helper'>
                         <span onClick={() => setStyleOverrideCollapsed(!styleOverrideCollapsed)} className="collapse-metadata-header">
-                            <span className="collapse-metadata-icon">{styleOverrideCollapsed ? '▶' : '▼'}</span> Style Overrides
+                            <span className="collapse-metadata-icon">{styleOverrideCollapsed ? '▶' : '▼'}</span> Style overrides
                             <HelperTooltip>
                                 Override the default styling for the book.
                             </HelperTooltip>
@@ -1306,7 +1344,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     <div className={styleOverrideCollapsed ? 'section-collapsed' : ''}>
                         <div className='lineup-helper'>
                             <div className='metadata-label'>
-                                <label>Heading Style</label>
+                                <label>Heading style</label>
                                 <HelperTooltip>
                                     Alignment for chapter headings.
                                 </HelperTooltip>
@@ -1328,7 +1366,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
                         <div className='lineup-helper'>
                             <div className='metadata-label'>
-                                <label>Horizontal Rule</label>
+                                <label>Horizontal rule</label>
                                 <HelperTooltip>
                                     Horizontal rule styling for scene breaks.
                                 </HelperTooltip>
@@ -1351,7 +1389,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
                     <h3 className='lineup-helper'>
                         <span onClick={() => setTocOptionsCollapsed(!tocOptionsCollapsed)} className="collapse-metadata-header">
-                            <span className="collapse-metadata-icon">{tocOptionsCollapsed ? '▶' : '▼'}</span> Table of Contents Options
+                            <span className="collapse-metadata-icon">{tocOptionsCollapsed ? '▶' : '▼'}</span> Table of contents options
                         </span>
                         <HelperTooltip>
                             Optional fields for handing table of contents.
@@ -1361,7 +1399,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                     <div className={tocOptionsCollapsed ? 'section-collapsed' : ''}>
                         <div className='lineup-helper'>
                             <div className='metadata-label'>
-                                <label htmlFor="showContents">Show Table of Contents</label>
+                                <label htmlFor="showContents">Show table of contents</label>
                                 <HelperTooltip>
                                     Show the table of contents in the book. Default: true. Uncheck to hide the table of contents.
                                 </HelperTooltip>
@@ -1375,7 +1413,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </div>
                         <div className='lineup-helper'>
                             <div className='metadata-label'>
-                                <label htmlFor="tocTitle">Table of Contents</label>
+                                <label htmlFor="tocTitle">Table of contents</label>
                                 <HelperTooltip>
                                     The title to override for the table of contents. Leave blank for: Table of Contents.
                                 </HelperTooltip>
@@ -1390,7 +1428,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </div>
                         <div className='lineup-helper'>
                             <div className='metadata-label'>
-                                <label>TOC Styling</label>
+                                <label>TOC styling</label>
                                 <HelperTooltip>
                                     Styling for the table of contents.
                                 </HelperTooltip>
@@ -1417,7 +1455,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </div>
                         <div className='lineup-helper'>
                             <div className='metadata-label'>
-                                <label htmlFor="startReading">Start Reading After</label>
+                                <label htmlFor="startReading">Start reading after</label>
                                 <HelperTooltip>
                                     Start reading the book from after the table of contents. Default: true. Uncheck to start reading from cover page.
                                 </HelperTooltip>
@@ -1484,7 +1522,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
                     <div className='lineup-helper'>
                         <div className='metadata-label'>
-                            <label htmlFor="cover">Cover Image</label>
+                            <label htmlFor="cover">Cover image</label>
                             <HelperTooltip>
                                 The cover image of the book. Supported formats: SVG, PNG, JPG, JPEG, GIF, TIF, TIFF.
                             </HelperTooltip>
@@ -1512,7 +1550,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                 <div className="optional-section binder-section-content">
                     <h2 className='lineup-helper'>
                         <span onClick={() => setOptionalMetadataCollapsed(!optionalMetadataCollapsed)} className="collapse-metadata-header">
-                            <span className="collapse-metadata-icon">{optionalMetadataCollapsed ? '▶' : '▼'}</span> Optional Metadata
+                            <span className="collapse-metadata-icon">{optionalMetadataCollapsed ? '▶' : '▼'}</span> Optional metadata
                         </span>
                         <HelperTooltip>
                             Metadata fields in this section are optional. These fields may not be shown to all e-readers.
@@ -1584,7 +1622,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </div>
                         <div className='lineup-helper'>
                             <div className='metadata-label'>
-                                <label htmlFor="fileAs">File As</label>
+                                <label htmlFor="fileAs">File as</label>
                                 <HelperTooltip>
                                     The sortable version of the author's name for overriding the name. Last name, First.
                                 </HelperTooltip>
@@ -1674,7 +1712,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                         </div>
                         <div className='lineup-helper'>
                             <div className='metadata-label'>
-                                <label htmlFor="transcriptionSource">Transcription Source</label>
+                                <label htmlFor="transcriptionSource">Transcription source</label>
                                 <HelperTooltip>
                                     The source of the transcription.
                                 </HelperTooltip>
@@ -1768,13 +1806,13 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             <button onClick={() => setChaptersCollapsed(false)}>
                                 Show chapter details
                                 <HelperTooltip>
-                                    Show title, exclude from contents, and front matter settings for each chapter.
+                                    Show title, exclude from contents, and frontmatter settings for each chapter.
                                 </HelperTooltip>
                             </button> :
                             <button onClick={() => setChaptersCollapsed(true)}>
                                 Collapse chapter details
                                 <HelperTooltip>
-                                    Hide title, exclude from contents, and front matter settings for each chapter.
+                                    Hide title, exclude from contents, and frontmatter settings for each chapter.
                                 </HelperTooltip>
                             </button>
                         }

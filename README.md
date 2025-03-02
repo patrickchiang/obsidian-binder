@@ -1,8 +1,8 @@
 ![Binder](img/main.png)
 
-# Obsidian Binder
+# Binder
 
-Obsidian Binder is an Obsidian plugin that allows users to effortlessly turn their files into a professional-quality, well-formatted, beautiful eBooks. This plugin also includes pre-made templates for front and back matter to streamline the export process.
+Binder is an Obsidian plugin that allows users to effortlessly turn their files into a professional-quality, well-formatted, beautiful eBooks. This plugin also includes pre-made templates for front and back matter to streamline the export process.
 
 The primary format is ePub 3.0, targeted for export to the Amazon Kindle store.
 

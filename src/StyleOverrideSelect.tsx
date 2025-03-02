@@ -43,17 +43,17 @@ export const dropcaps: StyleOverride[] = [
         style: ''
     },
     {
-        name: 'First Letter',
+        name: 'First letter',
         identifier: '_dropcap1',
         style: _dropcap1
     },
     {
-        name: 'First Word',
+        name: 'First word',
         identifier: '_dropcap2',
         style: _dropcap2
     },
     {
-        name: 'First Line',
+        name: 'First line',
         identifier: '_dropcap3',
         style: _dropcap3
     }
@@ -66,47 +66,47 @@ export const horizontalRules: StyleOverride[] = [
         style: ''
     },
     {
-        name: 'Three Asterisks',
+        name: 'Three asterisks',
         identifier: '_hrAsterisks3',
         style: _hrAsterisks3
     },
     {
-        name: 'Thin Line',
+        name: 'Thin line',
         identifier: '_hrThin',
         style: _hrThin
     },
     {
-        name: 'Thin Line 80%',
+        name: 'Thin line 80%',
         identifier: '_hrThin80',
         style: _hrThin80
     },
     {
-        name: 'Thin Line 50%',
+        name: 'Thin line 50%',
         identifier: '_hrThin50',
         style: _hrThin50
     },
     {
-        name: 'Thin Line 30%',
+        name: 'Thin line 30%',
         identifier: '_hrThin30',
         style: _hrThin30
     },
     {
-        name: 'Thick Line',
+        name: 'Thick line',
         identifier: '_hrThick',
         style: _hrThick
     },
     {
-        name: 'Thick Line 80%',
+        name: 'Thick line 80%',
         identifier: '_hrThick80',
         style: _hrThick80
     },
     {
-        name: 'Thick Line 50%',
+        name: 'Thick line 50%',
         identifier: '_hrThick50',
         style: _hrThick50
     },
     {
-        name: 'Thick Line 30%',
+        name: 'Thick line 30%',
         identifier: '_hrThick30',
         style: _hrThick30
     },
@@ -131,42 +131,42 @@ export const horizontalRules: StyleOverride[] = [
         style: _hrDotted30
     },
     {
-        name: 'Grooved Line',
+        name: 'Grooved line',
         identifier: '_hrGroove',
         style: _hrGroove
     },
     {
-        name: 'Grooved Line 80%',
+        name: 'Grooved line 80%',
         identifier: '_hrGroove80',
         style: _hrGroove80
     },
     {
-        name: 'Grooved Line 50%',
+        name: 'Grooved line 50%',
         identifier: '_hrGroove50',
         style: _hrGroove50
     },
     {
-        name: 'Grooved Line 30%',
+        name: 'Grooved line 30%',
         identifier: '_hrGroove30',
         style: _hrGroove30
     },
     {
-        name: 'Double Line',
+        name: 'Double line',
         identifier: '_hrDouble',
         style: _hrDouble
     },
     {
-        name: 'Double Line 80%',
+        name: 'Double line 80%',
         identifier: '_hrDouble80',
         style: _hrDouble80
     },
     {
-        name: 'Double Line 50%',
+        name: 'Double line 50%',
         identifier: '_hrDouble50',
         style: _hrDouble50
     },
     {
-        name: 'Double Line 30%',
+        name: 'Double line 30%',
         identifier: '_hrDouble30',
         style: _hrDouble30
     }
@@ -174,17 +174,17 @@ export const horizontalRules: StyleOverride[] = [
 
 export const indents: StyleOverride[] = [
     {
-        name: 'No Indent',
+        name: 'No indent',
         identifier: '',
         style: ''
     },
     {
-        name: 'Indent After First',
+        name: 'Indent after first',
         identifier: '_indent1',
         style: _indent1
     },
     {
-        name: 'Indent All',
+        name: 'Indent all',
         identifier: '_indent2',
         style: _indent2
     }
@@ -197,12 +197,12 @@ export const chapterHeadingAlignment: StyleOverride[] = [
         style: _chapterHeadingCenter
     },
     {
-        name: 'Left Aligned',
+        name: 'Left aligned',
         identifier: '_chapterHeadingLeft',
         style: _chapterHeadingLeft
     },
     {
-        name: 'Right Aligned',
+        name: 'Right aligned',
         identifier: '_chapterHeadingRight',
         style: _chapterHeadingRight
     }
@@ -215,12 +215,12 @@ export const toc: StyleOverride[] = [
         style: _toc1
     },
     {
-        name: 'Left Aligned',
+        name: 'Left aligned',
         identifier: '_toc2',
         style: _toc2
     },
     {
-        name: 'Right Aligned',
+        name: 'Right aligned',
         identifier: '_toc3',
         style: _toc3
     }
@@ -228,12 +228,12 @@ export const toc: StyleOverride[] = [
 
 export const tocFm: StyleOverride[] = [
     {
-        name: 'Include Frontmatter',
+        name: 'Include frontmatter',
         identifier: '_tocFmShow',
         style: _tocFmShow
     },
     {
-        name: 'Exclude Frontmatter',
+        name: 'Exclude frontmatter',
         identifier: '_tocFmHide',
         style: _tocFmHide
     }
@@ -241,12 +241,12 @@ export const tocFm: StyleOverride[] = [
 
 export const tocBm: StyleOverride[] = [
     {
-        name: 'Include Backmatter',
+        name: 'Include backmatter',
         identifier: '_tocBmShow',
         style: _tocBmShow
     },
     {
-        name: 'Exclude Backmatter',
+        name: 'Exclude backmatter',
         identifier: '_tocBmHide',
         style: _tocBmHide
     }

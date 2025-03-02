@@ -16,13 +16,17 @@ export const defaultStyle: BookStyle = {
     width: "5in",
     height: "8in",
 
-    insideMargin: "0.875in",
-    outsideMargin: "0.25in",
-    verticalMargin: "0.5in",
-    
+    // insideMargin: "0.875in",
+    // outsideMargin: "0.25in",
+    // verticalMargin: "0.5in",
+
+    insideMargin: "0.625in",
+    outsideMargin: "0.375in",
+    verticalMargin: "0.2in",
+
     fontSize: "12px",
     fontFamily: "Bookerly, sans-serif",
-    
+
     lineHeight: "22px"
 }
 
@@ -40,20 +44,20 @@ export const makeStylesheet = (setting: BookStyle) => `
 @page :left {
     margin-left: ${setting.insideMargin};
     margin-right: ${setting.outsideMargin};
-    
+
     @top-left {
         vertical-align: center;
-        content: counter(page);
+        //content: counter(page);
     }
 }
 
 @page :right {
     margin-left: ${setting.outsideMargin};
     margin-right: ${setting.insideMargin};
-    
+
     @top-right {
         vertical-align: center;
-        content: counter(page);
+        //content: counter(page);
     }
 }
 

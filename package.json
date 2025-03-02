@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-binder",
 	"version": "1.0.0",
-	"description": " Obsidian plugin that allows users to turn their files into a eBooks.",
+	"description": "An Obsidian plugin that allows users to turn their files into a eBooks.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -13,7 +13,6 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@types/archiver": "^6.0.2",
-		"@types/js-yaml": "^4.0.9",
 		"@types/node": "^16.11.6",
 		"@types/nodepub": "^3.0.3",
 		"@types/pug": "^2.0.10",
@@ -35,7 +34,6 @@
 		"@hello-pangea/dnd": "^17.0.0",
 		"archiver": "^7.0.1",
 		"epubjs": "^0.3.93",
-		"js-yaml": "^4.1.0",
 		"lucide-react": "^0.396.0",
 		"nodepub": "github:patrickchiang/nodepub",
 		"num-words": "^1.2.3",
