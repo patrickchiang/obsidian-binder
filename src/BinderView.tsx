@@ -45,6 +45,7 @@ interface EpubMetadata extends BookMetadata {
 
     showContents: boolean;
     tocTitle: string;
+    chapterText: string;
     startReading: boolean;
     theme: string;
     components: string[];
@@ -240,6 +241,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
 
             showContents: true,
             tocTitle: '',
+            chapterText: 'Chapter',
             startReading: true,
             theme: 'apex',
             components: ['_dropcap1', '_hrAsterisks3', '_indent1', ...styleOverrideDefaults]
@@ -817,7 +819,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             const chapterHeader = (
                 <div className="chapter-heading">
                     <h1 className="chapter-number">
-                        <span className="chapter-word">Chapter </span>
+                        <span className="chapter-word">{metadata.chapterText} </span>
                         <span className="chapter-number-numeric">{chapterNumber}</span>
                         <span className="chapter-number-text">
                             {capitalize(numWords(chapterNumber))}
@@ -1047,6 +1049,7 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
             ...addIfValid('published', metadata.published, ['']),
             ...addIfValid('showContents', metadata.showContents, [undefined]),
             ...addIfValid('contents', metadata.tocTitle, ['']),
+            ...addIfValid('chapterText', metadata.chapterText, ['Chapter']),
             ...addIfValid('source', metadata.transcriptionSource, ['']),
         };
 
@@ -1384,6 +1387,22 @@ const BinderView: React.FC<BinderModalProps> = ({ app, folder, plugin }) => {
                             </div>
 
                             <StyleOverrideSelect value={metadata.components} onChange={handleComponentsChange} styleOverrides={indents} />
+                        </div>
+
+                        <div className='lineup-helper'>
+                            <div className='metadata-label'>
+                                <label>Chapter Text</label>
+                                <HelperTooltip>
+                                    The text to display for the chapter. Leave blank for: Chapter.
+                                </HelperTooltip>
+                            </div>
+                            <input
+                                type="text"
+                                id="chapterText"
+                                className="metadata-input"
+                                value={metadata.chapterText}
+                                onChange={handleTextInputChange}
+                            />
                         </div>
                     </div>
 
